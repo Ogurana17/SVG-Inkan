@@ -6,7 +6,7 @@
   <title>SVG Inkan</title>
   <style>
     body {
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+      font-family: "Noto Serif JP, Hiragino Mincho ProN", "Yu Mincho", serif;
       text-align: center;
     }
 
@@ -51,29 +51,22 @@
 
     <!-- 部署名（上段） -->
     <text id="deptText" x="30" y="18" font-size="5.6" fill="#EF454A" text-anchor="middle"
-      font-family="Hiragino Mincho ProN, Yu Mincho, serif">
-      ××課
-    </text>
+      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
 
     <!-- 日付（中段） -->
     <text id="dateText" x="30" y="32" font-size="7.2" fill="#EF454A" text-anchor="middle"
-      font-family="Hiragino Mincho ProN, Yu Mincho, serif">
-      2000.09.18
-    </text>
+      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
 
     <!-- 氏名（下段） -->
     <text id="nameText" x="30" y="48" font-size="9.6" fill="#EF454A" text-anchor="middle"
-      font-family="Hiragino Mincho ProN, Yu Mincho, serif">
-      〇〇
-    </text>
+      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
   </svg>
 
+  <script src="https://cdn.jsdelivr.net/npm/opentype.js@latest/dist/opentype.min.js"></script>
   <script>
-    // 日付をゼロ埋めする関数
     function padZero(num) {
       return num.toString().padStart(2, "0");
     }
-    // 現在日付を yyyy.mm.dd 形式で取得
     function getCurrentDateFormatted() {
       const today = new Date();
       const year = today.getFullYear();
@@ -82,12 +75,39 @@
       return `${year}.${month}.${day}`;
     }
 
-    // ページロード時に日付をセット
-    document.addEventListener("DOMContentLoaded", function () {
-      const currentDate = getCurrentDateFormatted();
-      document.getElementById("dateInput").value = currentDate;
-      document.getElementById("dateText").textContent = currentDate; // ←追加
-    });
+    // アウトライン化用の関数（中央揃え）
+    function textToPath(font, text, x, y, fontSize, id) {
+      const oldPath = document.getElementById(id + "Path");
+      if (oldPath) oldPath.remove();
+      if (!text) return;
+
+      const glyphs = font.stringToGlyphs(text);
+      let textWidth = 0;
+      glyphs.forEach(function (glyph, i) {
+        const prevGlyph = glyphs[i - 1];
+        if (i > 0) {
+          textWidth += font.getKerningValue(prevGlyph, glyph);
+        }
+        textWidth += glyph.advanceWidth * (fontSize / font.unitsPerEm);
+      });
+      const xLeft = x - textWidth / 2;
+
+      const path = font.getPath(text, xLeft, y, fontSize);
+      const svgPathData = path.toPathData(3);
+
+      const svg = document.getElementById("Inkan");
+      const newPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      newPath.setAttribute("id", id + "Path");
+      newPath.setAttribute("d", svgPathData);
+      newPath.setAttribute("fill", "#EF454A");
+      newPath.setAttribute("stroke", "#EF454A");
+      newPath.setAttribute("stroke-width", "0.07");
+      svg.appendChild(newPath);
+
+      // 変換後、元の<text>要素を削除
+      const textElem = document.getElementById(id + "Text");
+      if (textElem) textElem.remove();
+    }
 
     // スタンプ更新関数
     function updateStamp() {
@@ -95,11 +115,70 @@
       const dept = document.getElementById("deptInput").value;
       const name = document.getElementById("nameInput").value;
 
+      // 既存の<text>がなければ再生成
+      ["date", "dept", "name"].forEach(function (id) {
+        if (!document.getElementById(id + "Text")) {
+          // SVGに新たな<text>要素を追加
+          const svg = document.getElementById("Inkan");
+          let textElem = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          if (id === "dept") {
+            textElem.setAttribute("x", "30");
+            textElem.setAttribute("y", "18");
+            textElem.setAttribute("font-size", "5.6");
+          } else if (id === "date") {
+            textElem.setAttribute("x", "30");
+            textElem.setAttribute("y", "32");
+            textElem.setAttribute("font-size", "7.2");
+          } else if (id === "name") {
+            textElem.setAttribute("x", "30");
+            textElem.setAttribute("y", "48");
+            textElem.setAttribute("font-size", "9.6");
+          }
+          textElem.setAttribute("fill", "#EF454A");
+          textElem.setAttribute("text-anchor", "middle");
+          textElem.setAttribute("font-family", "Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif");
+          textElem.setAttribute("font-weight", "700");
+          textElem.setAttribute("id", id + "Text");
+          svg.appendChild(textElem);
+        }
+      });
+
+      // テキスト内容をセット
       document.getElementById("dateText").textContent = date;
       document.getElementById("deptText").textContent = dept;
       document.getElementById("nameText").textContent = name;
+      document.getElementById("dateText").style.display = "";
+      document.getElementById("deptText").style.display = "";
+      document.getElementById("nameText").style.display = "";
+
+      // 既存のパスを削除
+      ["date", "dept", "name"].forEach(function (id) {
+        const oldPath = document.getElementById(id + "Path");
+        if (oldPath) oldPath.remove();
+      });
+
+      // パス変換
+      opentype.load('fonts/NotoSerifJP-Bold.ttf', function (err, font) {
+        if (err) {
+          alert('フォントの読み込みに失敗しました');
+          return;
+        }
+        textToPath(font, dept, 30, 18, 5.6, "dept");
+        textToPath(font, date, 30, 32, 7.2, "date");
+        textToPath(font, name, 30, 48, 9.6, "name");
+      });
     }
-    // SVGダウンロード関数
+
+    // ページロード時に日付をセットし、パス変換も実行
+    document.addEventListener("DOMContentLoaded", function () {
+      const currentDate = getCurrentDateFormatted();
+      document.getElementById("dateInput").value = currentDate;
+      document.getElementById("dateText").textContent = currentDate;
+      document.getElementById("deptText").textContent = "";
+      document.getElementById("nameText").textContent = "";
+      updateStamp();
+    });
+
     function downloadSVG() {
       const svg = document.getElementById("Inkan");
       const serializer = new XMLSerializer();
