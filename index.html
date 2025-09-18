@@ -35,14 +35,14 @@
   <h2>SVG Inkan</h2>
   <div class="form-container">
     <label>日付 (yyyy.mm.dd):
-      <input type="text" id="dateInput" value="2000.09.18" /></label><br />
+      <input type="text" id="dateInput" value="" /></label><br />
     <label>部署名: <input type="text" id="deptInput" value="××課" /></label><br />
     <label>氏名: <input type="text" id="nameInput" value="〇〇" /></label><br />
     <button onclick="updateStamp()">更新</button>
     <button onclick="downloadSVG()">SVGダウンロード</button>
   </div>
 
-  <svg id="Inkan" width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+  <svg id="Inkan" width="300" height="300" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
     <!-- 外円 -->
     <circle cx="30" cy="30" r="28" fill="none" stroke="#EF454A" stroke-width="1.2" />
     <!-- 上下の仕切り線 -->
@@ -81,8 +81,14 @@
       const day = padZero(today.getDate());
       return `${year}.${month}.${day}`;
     }
-    // テキストフォームに反映
-    document.getElementById("dateInput").value = getCurrentDateFormatted();
+
+    // ページロード時に日付をセット
+    document.addEventListener("DOMContentLoaded", function () {
+      const currentDate = getCurrentDateFormatted();
+      document.getElementById("dateInput").value = currentDate;
+      document.getElementById("dateText").textContent = currentDate; // ←追加
+    });
+
     // スタンプ更新関数
     function updateStamp() {
       const date = document.getElementById("dateInput").value;
