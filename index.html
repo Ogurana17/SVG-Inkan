@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SVG Inkan</title>
+    <style>
+      body {
+        font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+        text-align: center;
+      }
+      svg {
+        border: 1px solid #ccc;
+        margin: 10px;
+      }
+      .form-container {
+        margin: 20px;
+      }
+      input {
+        margin: 5px;
+        padding: 5px;
+      }
+      button {
+        margin-top: 10px;
+        padding: 5px 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>SVG Inkan</h2>
+    <div class="form-container">
+      <label
+        >日付 (yyyy.mm.dd):
+        <input type="text" id="dateInput" value="2000.09.18" /></label
+      ><br />
+      <label
+        >部署名: <input type="text" id="deptInput" value="××課" /></label
+      ><br />
+      <label>氏名: <input type="text" id="nameInput" value="〇〇" /></label
+      ><br />
+      <button onclick="updateStamp()">更新</button>
+      <button onclick="downloadSVG()">SVGダウンロード</button>
+    </div>
+
+    <svg
+      id="Inkan"
+      width="60"
+      height="60"
+      viewBox="0 0 60 60"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <!-- 外円 -->
+      <circle
+        cx="30"
+        cy="30"
+        r="28"
+        fill="none"
+        stroke="#EF454A"
+        stroke-width="1.2"
+      />
+      <!-- 上下の仕切り線 -->
+      <line x1="3" y1="22" x2="57" y2="22" stroke="#EF454A" stroke-width="0.6" />
+      <line x1="3" y1="38" x2="57" y2="38" stroke="#EF454A" stroke-width="0.6" />
+
+      <!-- 部署名（上段） -->
+      <text
+        id="deptText"
+        x="30"
+        y="18"
+        font-size="5.6"
+        fill="#EF454A"
+        text-anchor="middle"
+        font-family="Hiragino Mincho ProN, Yu Mincho, serif"
+      >
+        ××課
+      </text>
+
+      <!-- 日付（中段） -->
+      <text
+        id="dateText"
+        x="30"
+        y="32"
+        font-size="7.2"
+        fill="#EF454A"
+        text-anchor="middle"
+        font-family="Hiragino Mincho ProN, Yu Mincho, serif"
+      >
+        2000.09.18
+      </text>
+
+      <!-- 氏名（下段） -->
+      <text
+        id="nameText"
+        x="30"
+        y="48"
+        font-size="9.6"
+        fill="#EF454A"
+        text-anchor="middle"
+        font-family="Hiragino Mincho ProN, Yu Mincho, serif"
+      >
+        〇〇
+      </text>
+    </svg>
+
+    <script>
+      // 日付をゼロ埋めする関数
+      function padZero(num) {
+        return num.toString().padStart(2, "0");
+      }
+      // 現在日付を yyyy.mm.dd 形式で取得
+      function getCurrentDateFormatted() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = padZero(today.getMonth() + 1);
+        const day = padZero(today.getDate());
+        return `${year}.${month}.${day}`;
+      }
+      // テキストフォームに反映
+      document.getElementById("dateInput").value = getCurrentDateFormatted();
+      // スタンプ更新関数
+      function updateStamp() {
+        const date = document.getElementById("dateInput").value;
+        const dept = document.getElementById("deptInput").value;
+        const name = document.getElementById("nameInput").value;
+
+        document.getElementById("dateText").textContent = date;
+        document.getElementById("deptText").textContent = dept;
+        document.getElementById("nameText").textContent = name;
+      }
+      // SVGダウンロード関数
+      function downloadSVG() {
+        const svg = document.getElementById("Inkan");
+        const serializer = new XMLSerializer();
+        const source = serializer.serializeToString(svg);
+        const blob = new Blob([source], {
+          type: "image/svg+xml;charset=utf-8",
+        });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "Inkan.svg";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    </script>
+  </body>
+</html>
