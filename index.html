@@ -51,15 +51,15 @@
 
     <!-- 部署名（上段） -->
     <text id="deptText" x="30" y="18" font-size="5.6" fill="#EF454A" text-anchor="middle"
-      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
+      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700" font-kerning="normal"></text>
 
     <!-- 日付（中段） -->
     <text id="dateText" x="30" y="32" font-size="7.2" fill="#EF454A" text-anchor="middle"
-      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
+      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700" font-kerning="normal"></text>
 
     <!-- 氏名（下段） -->
     <text id="nameText" x="30" y="48" font-size="9.6" fill="#EF454A" text-anchor="middle"
-      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
+      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700" font-kerning="normal"></text>
   </svg>
 
   <script src="https://cdn.jsdelivr.net/npm/opentype.js@latest/dist/opentype.min.js"></script>
@@ -138,6 +138,7 @@
           textElem.setAttribute("text-anchor", "middle");
           textElem.setAttribute("font-family", "Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif");
           textElem.setAttribute("font-weight", "700");
+          textElem.setAttribute("font-kerning", "normal");
           textElem.setAttribute("id", id + "Text");
           svg.appendChild(textElem);
         }
