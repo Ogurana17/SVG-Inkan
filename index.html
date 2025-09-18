@@ -4,63 +4,81 @@
 <head>
   <meta charset="UTF-8" />
   <title>SVG Inkan</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
       font-family: "Noto Serif JP, Hiragino Mincho ProN", "Yu Mincho", serif;
       text-align: center;
+      background: #f8f9fa;
     }
 
     svg {
       border: 1px solid #ccc;
       margin: 10px;
+      background: #fff;
     }
 
-    .form-container {
-      margin: 20px;
+    .inkan-label {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
     }
 
-    input {
-      margin: 5px;
-      padding: 5px;
-    }
-
-    button {
-      margin-top: 10px;
-      padding: 5px 15px;
+    .svg-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 2rem;
     }
   </style>
 </head>
 
 <body>
-  <h2>SVG Inkan</h2>
-  <div class="form-container">
-    <label>日付 (yyyy.mm.dd):
-      <input type="text" id="dateInput" value="" /></label><br />
-    <label>部署名: <input type="text" id="deptInput" value="××課" /></label><br />
-    <label>氏名: <input type="text" id="nameInput" value="〇〇" /></label><br />
-    <button onclick="updateStamp()">更新</button>
-    <button onclick="downloadSVG()">SVGダウンロード</button>
+  <div class="container py-4">
+    <h2 class="mb-4">SVG Inkan</h2>
+    <div class="card shadow-sm mx-auto" style="max-width: 400px;">
+      <div class="card-body">
+        <form onsubmit="event.preventDefault(); updateStamp();">
+          <div class="mb-3 text-start">
+            <label class="inkan-label form-label">部署名</label>
+            <input type="text" id="deptInput" class="form-control" value="××課" />
+          </div>
+          <div class="mb-3 text-start">
+            <label class="inkan-label form-label">氏名</label>
+            <input type="text" id="nameInput" class="form-control" value="〇〇" />
+          </div>
+          <div class="mb-3 text-start">
+            <label class="inkan-label form-label">作成日</label>
+            <div id="currentDate" class="form-control-plaintext ps-2"></div>
+          </div>
+          <div class="d-flex justify-content-between">
+            <button type="button" class="btn btn-danger" onclick="updateStamp()">更新</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="downloadSVG()">SVGダウンロード</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="svg-container">
+      <svg id="Inkan" width="300" height="300" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+        <!-- 外円 -->
+        <circle cx="30" cy="30" r="28" fill="none" stroke="#EF454A" stroke-width="1.2" />
+        <!-- 上下の仕切り線 -->
+        <line x1="3" y1="22" x2="57" y2="22" stroke="#EF454A" stroke-width="0.6" />
+        <line x1="3" y1="38" x2="57" y2="38" stroke="#EF454A" stroke-width="0.6" />
+
+        <!-- 部署名（上段） -->
+        <text id="deptText" x="30" y="18" font-size="5.6" fill="#EF454A" text-anchor="middle"
+          font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700" font-kerning="normal"></text>
+
+        <!-- 日付（中段） -->
+        <text id="dateText" x="30" y="32" font-size="7.2" fill="#EF454A" text-anchor="middle"
+          font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700" font-kerning="normal"></text>
+
+        <!-- 氏名（下段） -->
+        <text id="nameText" x="30" y="48" font-size="9.6" fill="#EF454A" text-anchor="middle"
+          font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700" font-kerning="normal"></text>
+      </svg>
+    </div>
   </div>
-
-  <svg id="Inkan" width="300" height="300" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-    <!-- 外円 -->
-    <circle cx="30" cy="30" r="28" fill="none" stroke="#EF454A" stroke-width="1.2" />
-    <!-- 上下の仕切り線 -->
-    <line x1="3" y1="22" x2="57" y2="22" stroke="#EF454A" stroke-width="0.6" />
-    <line x1="3" y1="38" x2="57" y2="38" stroke="#EF454A" stroke-width="0.6" />
-
-    <!-- 部署名（上段） -->
-    <text id="deptText" x="30" y="18" font-size="5.6" fill="#EF454A" text-anchor="middle"
-      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700" font-kerning="normal"></text>
-
-    <!-- 日付（中段） -->
-    <text id="dateText" x="30" y="32" font-size="7.2" fill="#EF454A" text-anchor="middle"
-      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700" font-kerning="normal"></text>
-
-    <!-- 氏名（下段） -->
-    <text id="nameText" x="30" y="48" font-size="9.6" fill="#EF454A" text-anchor="middle"
-      font-family="Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700" font-kerning="normal"></text>
-  </svg>
 
   <script src="https://cdn.jsdelivr.net/npm/opentype.js@latest/dist/opentype.min.js"></script>
   <script>
@@ -76,7 +94,7 @@
     }
 
     // アウトライン化用の関数（中央揃え）
-    function textToPath(font, text, x, y, fontSize, id) {
+    function textToPath(font, text, x, y, fontSize, id, color = "#EF454A", strokeWidth = "0.07") {
       const oldPath = document.getElementById(id + "Path");
       if (oldPath) oldPath.remove();
       if (!text) return;
@@ -99,9 +117,9 @@
       const newPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
       newPath.setAttribute("id", id + "Path");
       newPath.setAttribute("d", svgPathData);
-      newPath.setAttribute("fill", "#EF454A");
-      newPath.setAttribute("stroke", "#EF454A");
-      newPath.setAttribute("stroke-width", "0.07");
+      newPath.setAttribute("fill", color);
+      newPath.setAttribute("stroke", color);
+      newPath.setAttribute("stroke-width", strokeWidth);
       svg.appendChild(newPath);
 
       // 変換後、元の<text>要素を削除
@@ -109,17 +127,101 @@
       if (textElem) textElem.remove();
     }
 
+    // #EF454Aの各RGB値を-8～+8の範囲でランダム変化
+    function randomizeColor(baseHex) {
+      const base = [
+        parseInt(baseHex.substr(1, 2), 16),
+        parseInt(baseHex.substr(3, 2), 16),
+        parseInt(baseHex.substr(5, 2), 16)
+      ];
+      const rand = base.map(v =>
+        Math.max(0, Math.min(255, v + Math.floor(Math.random() * 17) - 8))
+      );
+      return `rgb(${rand[0]},${rand[1]},${rand[2]})`;
+    }
+
+    // strokeの太さを-15%～+15%でランダム変化
+    function randomizeStroke(base) {
+      const ratio = 1 + (Math.random() * 0.3 - 0.15);
+      return (base * ratio).toFixed(3);
+    }
+
+    /**
+     * opentype.js で各グリフの advanceWidth を取得し、視覚規則に基づき <tspan dx="..."> を自動生成
+     * @param {opentype.Font} font - opentype.jsで読み込んだフォント
+     * @param {string} text - 対象テキスト
+     * @param {number} fontSize - SVG上のフォントサイズ
+     * @param {Object} visualRules - 例: { "トウ": -0.2, "ッカ": -0.15 }
+     * @returns {string} - <tspan>列
+     */
+    function generateTspans(font, text, fontSize, visualRules = {}) {
+      const unitsPerEm = font.unitsPerEm;
+      let tspans = [];
+      let prevGlyph = null;
+      let prevChar = '';
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const glyph = font.charToGlyph(char);
+        let dx = 0;
+
+        // advanceWidthを基本値とする
+        if (prevGlyph) {
+          dx = prevGlyph.advanceWidth * (fontSize / unitsPerEm);
+          // カーニング
+          dx += font.getKerningValue(prevGlyph, glyph) * (fontSize / unitsPerEm);
+        }
+
+        // 視覚規則による補正
+        const pair = prevChar + char;
+        if (visualRules[pair]) {
+          dx += visualRules[pair] * fontSize; // 補正値はem単位で
+        }
+
+        // 1文字目はdx不要
+        const dxAttr = i === 0 ? '' : ` dx="${dx.toFixed(2)}"`;
+        tspans.push(`<tspan${dxAttr}>${char}</tspan>`);
+
+        prevGlyph = glyph;
+        prevChar = char;
+      }
+      return tspans.join('');
+    }
+
+    // 例：SVGテキスト要素にtspanを適用
+    function setTextWithTspans(font, elemId, text, fontSize, visualRules = {}) {
+      const elem = document.getElementById(elemId);
+      if (!elem) return;
+      elem.setAttribute('font-size', fontSize);
+      elem.innerHTML = generateTspans(font, text, fontSize, visualRules);
+    }
+
     // スタンプ更新関数
     function updateStamp() {
-      const date = document.getElementById("dateInput").value;
+      const date = getCurrentDateFormatted();
       const dept = document.getElementById("deptInput").value;
       const name = document.getElementById("nameInput").value;
+
+      // ランダム色と太さ
+      const color = randomizeColor("#EF454A");
+      const strokeOuter = randomizeStroke(1.2);
+      const strokeLine = randomizeStroke(0.6);
+      const strokeText = randomizeStroke(0.07);
+
+      // SVG要素取得
+      const svg = document.getElementById("Inkan");
+
+      // 外円・仕切り線の属性を更新
+      svg.querySelector("circle").setAttribute("stroke", color);
+      svg.querySelector("circle").setAttribute("stroke-width", strokeOuter);
+      const lines = svg.querySelectorAll("line");
+      lines[0].setAttribute("stroke", color);
+      lines[0].setAttribute("stroke-width", strokeLine);
+      lines[1].setAttribute("stroke", color);
+      lines[1].setAttribute("stroke-width", strokeLine);
 
       // 既存の<text>がなければ再生成
       ["date", "dept", "name"].forEach(function (id) {
         if (!document.getElementById(id + "Text")) {
-          // SVGに新たな<text>要素を追加
-          const svg = document.getElementById("Inkan");
           let textElem = document.createElementNS("http://www.w3.org/2000/svg", "text");
           if (id === "dept") {
             textElem.setAttribute("x", "30");
@@ -134,7 +236,7 @@
             textElem.setAttribute("y", "48");
             textElem.setAttribute("font-size", "9.6");
           }
-          textElem.setAttribute("fill", "#EF454A");
+          textElem.setAttribute("fill", color);
           textElem.setAttribute("text-anchor", "middle");
           textElem.setAttribute("font-family", "Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif");
           textElem.setAttribute("font-weight", "700");
@@ -164,16 +266,16 @@
           alert('フォントの読み込みに失敗しました');
           return;
         }
-        textToPath(font, dept, 30, 18, 5.6, "dept");
-        textToPath(font, date, 30, 32, 7.2, "date");
-        textToPath(font, name, 30, 48, 9.6, "name");
+        textToPath(font, dept, 30, 18, 5.6, "dept", color, strokeText);
+        textToPath(font, date, 30, 32, 7.2, "date", color, strokeText);
+        textToPath(font, name, 30, 48, 9.6, "name", color, strokeText);
       });
     }
 
     // ページロード時に日付をセットし、パス変換も実行
     document.addEventListener("DOMContentLoaded", function () {
       const currentDate = getCurrentDateFormatted();
-      document.getElementById("dateInput").value = currentDate;
+      document.getElementById("currentDate").textContent = currentDate;
       document.getElementById("dateText").textContent = currentDate;
       document.getElementById("deptText").textContent = "";
       document.getElementById("nameText").textContent = "";
@@ -183,7 +285,15 @@
     function downloadSVG() {
       const svg = document.getElementById("Inkan");
       const serializer = new XMLSerializer();
-      const source = serializer.serializeToString(svg);
+      let source = serializer.serializeToString(svg);
+
+      // SVGのminify: 不要な空白・改行・インデントを削除
+      source = source
+        .replace(/>\s+</g, '><')      // タグ間の空白・改行を削除
+        .replace(/\s{2,}/g, ' ')      // 連続スペースを1つに
+        .replace(/[\r\n]+/g, '')      // 改行を削除
+        .replace(/ ?([=]) ?/g, '$1'); // =の前後スペースを削除
+
       const blob = new Blob([source], {
         type: "image/svg+xml;charset=utf-8",
       });
