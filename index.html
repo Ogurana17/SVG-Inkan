@@ -305,9 +305,14 @@
           alert('フォントの読み込みに失敗しました');
           return;
         }
-        textToPath(font, dept, 30, 18, 5.6, "dept", color, strokeText);
-        textToPath(font, date, 30, 32, 7.2, "date", color, strokeText);
-        textToPath(font, name, 30, 48, 9.6, "name", color, strokeText);
+        // 各テキストごとにstrokeTextをランダム化
+        const strokeDept = randomizeStroke(0.07);
+        const strokeDate = randomizeStroke(0.07);
+        const strokeName = randomizeStroke(0.07);
+
+        textToPath(font, dept, 30, 18, 5.6, "dept", color, strokeDept);
+        textToPath(font, date, 30, 32, 7.2, "date", color, strokeDate);
+        textToPath(font, name, 30, 48, 9.6, "name", color, strokeName);
       });
     }
 
