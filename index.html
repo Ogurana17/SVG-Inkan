@@ -90,7 +90,7 @@
             <div id="currentDate" class="form-control-plaintext ps-2"></div>
           </div>
           <div class="d-flex justify-content-between">
-            <button type="button" class="btn btn-danger" onclick="updateStamp()">更新</button>
+            <button type="button" class="btn btn-danger" onclick="onUpdateButton()">更新</button>
             <button type="button" class="btn btn-outline-secondary" onclick="downloadSVG()">SVGダウンロード</button>
           </div>
         </form>
@@ -160,7 +160,7 @@
       newPath.setAttribute("stroke", color);
       newPath.setAttribute("stroke-width", strokeWidth);
       svg.appendChild(newPath);
-console.log(strokeWidth);
+
       // 変換後、元の<text>要素を削除
       const textElem = document.getElementById(id + "Text");
       if (textElem) textElem.remove();
@@ -319,8 +319,22 @@ console.log(strokeWidth);
       });
     }
 
-    // ページロード時に日付をセットし、パス変換も実行
+    // URLパラメータ取得用
+    function getQueryParams() {
+      const params = {};
+      location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (str, key, value) {
+        params[decodeURIComponent(key)] = decodeURIComponent(value.replace(/\+/g, " "));
+        return "";
+      });
+      return params;
+    }
+
+    // ページロード時にURLパラメータから値をセット
     document.addEventListener("DOMContentLoaded", function () {
+      const params = getQueryParams();
+      if (params.dept) document.getElementById("deptInput").value = params.dept;
+      if (params.name) document.getElementById("nameInput").value = params.name;
+
       const currentDate = getCurrentDateFormatted();
       document.getElementById("currentDate").textContent = currentDate;
       document.getElementById("dateText").textContent = currentDate;
@@ -328,6 +342,15 @@ console.log(strokeWidth);
       document.getElementById("nameText").textContent = "";
       updateStamp();
     });
+
+    // 「更新」ボタン押下時の挙動を変更
+    function onUpdateButton() {
+      const dept = encodeURIComponent(document.getElementById("deptInput").value);
+      const name = encodeURIComponent(document.getElementById("nameInput").value);
+      // URLを再構築して遷移
+      const url = `${location.pathname}?dept=${dept}&name=${name}`;
+      location.href = url;
+    }
 
     function downloadSVG() {
       const svg = document.getElementById("Inkan");
