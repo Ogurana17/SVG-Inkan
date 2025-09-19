@@ -133,7 +133,7 @@
     }
 
     // アウトライン化用の関数（中央揃え）
-    function textToPath(font, text, x, y, fontSize, id, color = "#EF454A", strokeWidth = "0.07") {
+    function textToPath(font, text, x, y, fontSize, id, color = "#EF454A", strokeWidth = randomizeStroke(0.07)) {
       const oldPath = document.getElementById(id + "Path");
       if (oldPath) oldPath.remove();
       if (!text) return;
@@ -160,13 +160,13 @@
       newPath.setAttribute("stroke", color);
       newPath.setAttribute("stroke-width", strokeWidth);
       svg.appendChild(newPath);
-
+console.log(strokeWidth);
       // 変換後、元の<text>要素を削除
       const textElem = document.getElementById(id + "Text");
       if (textElem) textElem.remove();
     }
 
-    // #EF454Aの各RGB値を-16～+16の範囲でランダム変化
+    // #EF454Aの各RGB値を-20～+16の範囲でランダム変化
     // （例）Math.floor(Math.random() * (上限-下限+1)) + 下限
     function randomizeColor(baseHex) {
       const base = [
@@ -175,16 +175,17 @@
         parseInt(baseHex.substr(5, 2), 16)
       ];
       const rand = base.map(v =>
-        Math.max(0, Math.min(255, v + Math.floor(Math.random() * 33) - 16))
+        Math.max(0, Math.min(255, v + Math.floor(Math.random() * 37) - 20))
       );
       return `rgb(${rand[0]},${rand[1]},${rand[2]})`;
     }
 
-    // strokeの太さを-16%～+16%でランダム変化
+    // strokeの太さを-20%～+20%でランダム変化
     // （例）Math.random() * (上限-下限) + 下限
     function randomizeStroke(base) {
-      const ratio = 1 + (Math.random() * 0.32 - 0.16);
-      return (base * ratio).toFixed(3);
+      const ratio = 1 + (Math.random() * 0.4 - 0.2);
+      if (base < 0.1) return (base * (1 + (1 - ratio) * 5)).toFixed(3); // 細すぎる場合は補正
+      else return (base * ratio).toFixed(3);
     }
 
     /**
