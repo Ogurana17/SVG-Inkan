@@ -166,6 +166,103 @@
       if (textElem) textElem.remove();
     }
 
+    /**
+     * パス化→はみ出し判定→1pt大きくして再パス化を繰り返し、はみ出したら1pt戻す
+     * @param {opentype.Font} font
+     * @param {string} text
+     * @param {number} x - 中心x
+     * @param {number} y - 中心y
+     * @param {number} initialFontSize - 初期フォントサイズ
+     * @param {string} id
+     * @param {string} color
+     * @param {number} strokeWidth
+     */
+    function textToPathFitGrow(font, text, x, y, initialFontSize, id, color = "#EF454A", strokeWidth = randomizeStroke(0.07)) {
+      const oldPath = document.getElementById(id + "Path");
+      if (oldPath) oldPath.remove();
+      if (!text) return;
+
+      let fontSize = initialFontSize;
+      let path, bbox;
+      const cx = 30, cy = 30, r = 28 - 0.8; // 外円中心と半径(余白分小さく)
+      let isOverflow = false;
+      let maxFontSize = 60; // 安全上限
+
+      // 仕切り線範囲
+      let yMin = 3, yMax = 22;
+      if (id === "date") { yMin = 22; yMax = 38; }
+      if (id === "name") { yMin = 38; yMax = 57; }
+
+      while (fontSize < maxFontSize) {
+        // パス生成（中央揃え）
+        const glyphs = font.stringToGlyphs(text);
+        let textWidth = 0;
+        glyphs.forEach(function (glyph, i) {
+          const prevGlyph = glyphs[i - 1];
+          if (i > 0) {
+            textWidth += font.getKerningValue(prevGlyph, glyph);
+          }
+          textWidth += glyph.advanceWidth * (fontSize / font.unitsPerEm);
+        });
+        const xLeft = x - textWidth / 2;
+        path = font.getPath(text, xLeft, y, fontSize);
+        bbox = path.getBoundingBox();
+
+        // bbox四隅が外円内か判定
+        const points = [
+          [bbox.x1, bbox.y1],
+          [bbox.x2, bbox.y1],
+          [bbox.x1, bbox.y2],
+          [bbox.x2, bbox.y2],
+        ];
+        isOverflow = !points.every(([px, py]) => (px - cx) ** 2 + (py - cy) ** 2 <= r ** 2);
+
+        // 仕切り線範囲も超えていないか
+        if (bbox.y1 < yMin || bbox.y2 > yMax) isOverflow = true;
+
+        if (isOverflow) {
+          fontSize -= 1;
+          break;
+        }
+        fontSize += 1;
+      }
+
+      // 最終パス再生成（中央揃え）
+      const glyphs = font.stringToGlyphs(text);
+      let textWidth = 0;
+      glyphs.forEach(function (glyph, i) {
+        const prevGlyph = glyphs[i - 1];
+        if (i > 0) {
+          textWidth += font.getKerningValue(prevGlyph, glyph);
+        }
+        textWidth += glyph.advanceWidth * (fontSize / font.unitsPerEm);
+      });
+      const xLeft = x - textWidth / 2;
+      path = font.getPath(text, xLeft, y, fontSize);
+
+      // y座標を仕切り線範囲中央に微調整
+      bbox = path.getBoundingBox();
+      const bboxHeight = bbox.y2 - bbox.y1;
+      const yCenter = yMin + (yMax - yMin) / 2;
+      const yOffset = yCenter - (bbox.y1 + bbox.y2) / 2;
+      path = font.getPath(text, xLeft, y + yOffset, fontSize);
+
+      // SVGパス描画
+      const svgPathData = path.toPathData(3);
+      const svg = document.getElementById("Inkan");
+      const newPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      newPath.setAttribute("id", id + "Path");
+      newPath.setAttribute("d", svgPathData);
+      newPath.setAttribute("fill", color);
+      newPath.setAttribute("stroke", color);
+      newPath.setAttribute("stroke-width", strokeWidth);
+      svg.appendChild(newPath);
+
+      // 変換後、元の<text>要素を削除
+      const textElem = document.getElementById(id + "Text");
+      if (textElem) textElem.remove();
+    }
+
     // #EF454Aの各RGB値を-20～+16の範囲でランダム変化
     // （例）Math.floor(Math.random() * (上限-下限+1)) + 下限
     function randomizeColor(baseHex) {
@@ -313,9 +410,9 @@
         const strokeDate = randomizeStroke(0.07);
         const strokeName = randomizeStroke(0.07);
 
-        textToPath(font, dept, 30, 18, 5.6, "dept", color, strokeDept);
-        textToPath(font, date, 30, 32, 7.2, "date", color, strokeDate);
-        textToPath(font, name, 30, 48, 9.6, "name", color, strokeName);
+        textToPathFitGrow(font, dept, 30, 18, 5.6, "dept", color, strokeDept);
+        textToPathFitGrow(font, date, 30, 32, 7.2, "date", color, strokeDate);
+        textToPathFitGrow(font, name, 30, 48, 9.6, "name", color, strokeName);
       });
     }
 
