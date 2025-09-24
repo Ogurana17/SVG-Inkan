@@ -304,6 +304,7 @@
       location.href = url;
     }
 
+    // downloadSVG, downloadPDF 関数を修正
     function downloadSVG() {
       const svg = document.getElementById("Inkan");
       const serializer = new XMLSerializer();
@@ -311,14 +312,20 @@
       source = source.replace(/>\s+</g, '><').replace(/\s{2,}/g, ' ').replace(/[\r\n]+/g, '').replace(/ ?([=]) ?/g, '$1');
       const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(blob);
+
+      // 日付をyyyymmdd形式で取得
+      const today = new Date();
+      const yyyymmdd = today.getFullYear().toString() +
+        String(today.getMonth() + 1).padStart(2, "0") +
+        String(today.getDate()).padStart(2, "0");
+
       const a = document.createElement("a");
       a.href = url;
-      a.download = "Inkan.svg";
+      a.download = `Inkan_${yyyymmdd}.svg`;
       a.click();
       URL.revokeObjectURL(url);
     }
 
-    // PNG画像としてPDF化（ベクターPDF不可）
     function downloadPDF() {
       const svgElem = document.getElementById("Inkan");
       const width = svgElem.viewBox.baseVal.width || 60;
@@ -327,6 +334,12 @@
       const svgString = serializer.serializeToString(svgElem);
       const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(svgBlob);
+
+      // 日付をyyyymmdd形式で取得
+      const today = new Date();
+      const yyyymmdd = today.getFullYear().toString() +
+        String(today.getMonth() + 1).padStart(2, "0") +
+        String(today.getDate()).padStart(2, "0");
 
       const img = new window.Image();
       img.onload = function () {
@@ -343,7 +356,7 @@
           format: [width, height]
         });
         pdf.addImage(pngData, 'PNG', 0, 0, width, height);
-        pdf.save("Inkan.pdf");
+        pdf.save(`Inkan_${yyyymmdd}.pdf`);
         URL.revokeObjectURL(url);
       };
       img.onerror = function () {
