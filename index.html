@@ -147,7 +147,7 @@
       if (oldPath) oldPath.remove();
       if (!text) return;
 
-      let fontSize = initialFontSize;
+      let fontSize = initialFontSize / 10;  // 文字数が多いとはみ出ることがあるため、1/10サイズから開始
       let path, bbox;
       const cx = 30, cy = 30, r = 28 - 0.8;
       let isOverflow = false;
