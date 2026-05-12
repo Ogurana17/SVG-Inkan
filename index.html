@@ -3,18 +3,18 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>SVG Inkan</title>
+  <title>SVG Inkan Generator</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      font-family: "Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN", "Yu Mincho", serif;
+      font-family: "Yuji Syuku", "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
       text-align: center;
       background: #f8f9fa;
     }
 
     .container {
-      max-width: 420px;
+      max-width: 800px;
       margin: 0 auto;
       padding-left: 1rem;
       padding-right: 1rem;
@@ -24,13 +24,30 @@
       margin-bottom: 1.5rem;
     }
 
+    .svg-container-group {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      margin-top: 2rem;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+
+    .svg-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 50%;
+      padding: 0 10px;
+      box-sizing: border-box;
+    }
+
     .svg-container {
       display: flex;
       justify-content: center;
       align-items: center;
-      margin-top: 2rem;
-      padding-left: 0.5rem;
-      padding-right: 0.5rem;
+      width: 100%;
+      margin-bottom: 1rem;
     }
 
     svg {
@@ -49,17 +66,33 @@
       margin-bottom: 0.5rem;
     }
 
+    .download-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        width: 100%;
+        max-width: 320px;
+    }
+
     @media (max-width: 600px) {
       .container {
         max-width: 100vw;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
       }
-      .svg-container {
+
+      .svg-container-group {
+        flex-direction: column;
         margin-top: 1rem;
         padding-left: 0;
         padding-right: 0;
       }
+
+      .svg-wrapper {
+        width: 100%;
+        padding: 5px 0;
+      }
+
       svg {
         max-width: 100vw;
         max-height: 60vw;
@@ -71,299 +104,654 @@
 
 <body>
   <div class="container py-4">
-    <h2 class="mb-4">SVG Inkan</h2>
+    <h2 class="mb-4">SVG Inkan Generator</h2>
     <div class="card shadow-sm mx-auto">
       <div class="card-body">
-        <form onsubmit="event.preventDefault(); updateStamp();">
+        <form onsubmit="event.preventDefault(); onUpdateButton();">
           <div class="mb-3 text-start">
             <label class="inkan-label form-label">部署名</label>
-            <input type="text" id="deptInput" class="form-control" value="××課" />
+            <input type="text" id="deptInput" class="form-control" value="経理課" />
           </div>
           <div class="mb-3 text-start">
             <label class="inkan-label form-label">氏名</label>
-            <input type="text" id="nameInput" class="form-control" value="〇〇" />
+            <input type="text" id="nameInput" class="form-control" value="田中" />
           </div>
           <div class="mb-3 text-start">
             <label class="inkan-label form-label">作成日</label>
             <div id="currentDate" class="form-control-plaintext ps-2"></div>
           </div>
-          <div class="alert alert-info py-2 mb-3" style="font-size: 0.98rem;">
-            Excelで印鑑画像を利用される場合、<b>Inkscape等のSVG→PDF変換環境があれば「SVGダウンロード」をご利用ください</b>。<br>
-            <b>変換環境がない場合は「PDFダウンロード」をご利用ください</b>（PDFは画像形式となります）。
-          </div>
-          <div class="d-flex justify-content-between">
-            <button type="button" class="btn btn-danger" onclick="onUpdateButton()">更新</button>
-            <button type="button" class="btn btn-outline-secondary" onclick="downloadSVG()">SVGダウンロード</button>
-            <button type="button" class="btn btn-outline-secondary" onclick="downloadPDF()">PDFダウンロード</button>
+          <div class="d-flex justify-content-center">
+            <button type="button" class="btn btn-danger w-50" onclick="onUpdateButton()">印鑑更新</button>
           </div>
         </form>
       </div>
     </div>
-    <div class="svg-container">
-      <svg id="Inkan" width="300" height="300" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="30" cy="30" r="28" fill="none" stroke="#EF454A" stroke-width="1.2" />
-        <line x1="3" y1="22" x2="57" y2="22" stroke="#EF454A" stroke-width="0.6" />
-        <line x1="3" y1="38" x2="57" y2="38" stroke="#EF454A" stroke-width="0.6" />
-        <text id="deptText" x="30" y="18" font-size="5.6" fill="#EF454A" text-anchor="middle"
-          font-family="Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
-        <text id="dateText" x="30" y="32" font-size="7.2" fill="#EF454A" text-anchor="middle"
-          font-family="Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
-        <text id="nameText" x="30" y="48" font-size="9.6" fill="#EF454A" text-anchor="middle"
-          font-family="Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
-      </svg>
+
+    <div class="svg-container-group">
+
+      <div class="svg-wrapper">
+        <div class="svg-container">
+          <svg id="InkanSanmon" width="300" height="300" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="30" cy="30" r="28" fill="none" stroke="#EF454A" stroke-width="1.2" />
+            <line x1="3" y1="22" x2="57" y2="22" stroke="#EF454A" stroke-width="0.6" />
+            <line x1="3" y1="38" x2="57" y2="38" stroke="#EF454A" stroke-width="0.6" />
+            <text id="deptText" x="30" y="18" font-size="5.6" fill="#EF454A" text-anchor="middle"
+              font-family="Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
+            <text id="dateText" x="30" y="32" font-size="7.2" fill="#EF454A" text-anchor="middle"
+              font-family="Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
+            <text id="nameText" x="30" y="48" font-size="9.6" fill="#EF454A" text-anchor="middle"
+              font-family="Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
+          </svg>
+        </div>
+        <div class="download-buttons">
+          <button type="button" class="btn btn-outline-secondary" onclick="downloadSVG('InkanSanmon', '三文判')">SVG</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="downloadPNG('InkanSanmon', '三文判')">PNG</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="downloadEMF('InkanSanmon', '三文判')">EMF</button>
+        </div>
+      </div>
+
+      <div class="svg-wrapper">
+        <div class="svg-container">
+          <svg id="InkanTateName" width="300" height="300" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="30" cy="30" r="28" fill="none" stroke="#EF454A" stroke-width="1.2" />
+            <text id="tateNameText" x="30" y="30" font-size="12" fill="#EF454A" text-anchor="middle"
+              font-family="Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
+          </svg>
+        </div>
+        <div class="download-buttons">
+          <button type="button" class="btn btn-outline-secondary" onclick="downloadSVG('InkanTateName', '縦文字')">SVG</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="downloadPNG('InkanTateName', '縦文字')">PNG</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="downloadEMF('InkanTateName', '縦文字')">EMF</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/opentype.js@latest/dist/opentype.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.3.1/jspdf.umd.min.js"></script>
-  <script>
-    function padZero(num) { return num.toString().padStart(2, "0"); }
-    function getCurrentDateFormatted() {
-      const today = new Date();
-      return `${today.getFullYear()}.${padZero(today.getMonth() + 1)}.${padZero(today.getDate())}`;
-    }
 
-    // ランダム色と太さ
-    function randomizeColor(baseHex) {
-      const base = [
-        parseInt(baseHex.substr(1, 2), 16),
-        parseInt(baseHex.substr(3, 2), 16),
-        parseInt(baseHex.substr(5, 2), 16)
-      ];
-      const rand = base.map(v =>
-        Math.max(0, Math.min(255, v + Math.floor(Math.random() * 37) - 20))
-      );
-      return `rgb(${rand[0]},${rand[1]},${rand[2]})`;
+  <script>
+    let loadedFont = null;
+    const FONT_URL = 'fonts/YujiSyuku-Regular.ttf';
+
+    // ── ユーティリティ ──────────────────────────────────────────
+    function padZero(n) { return String(n).padStart(2, "0"); }
+    function getCurrentDateFormatted() {
+      const d = new Date();
+      return `${d.getFullYear()}.${padZero(d.getMonth()+1)}.${padZero(d.getDate())}`;
+    }
+    function randomizeColor(hex) {
+      const b = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+      const r = b.map(v => Math.max(0, Math.min(255, v + Math.floor(Math.random()*37)-18)));
+      return `rgb(${r[0]},${r[1]},${r[2]})`;
     }
     function randomizeStroke(base) {
-      const ratio = 1 + (Math.random() * 0.4 - 0.2);
-      if (base < 0.1) return (base * (1 + (1 - ratio) * 5)).toFixed(3);
-      else return (base * ratio).toFixed(3);
+      const ratio = 1 + (Math.random()*0.4 - 0.2);
+      return base < 0.1 ? (base*(1+(1-ratio)*5)).toFixed(3) : (base*ratio).toFixed(3);
     }
 
-    // パス化→はみ出し判定→1pt大きくして再パス化を繰り返し、はみ出したら1pt戻す
-    function textToPathFitGrow(font, text, x, y, initialFontSize, id, color = "#EF454A", strokeWidth = randomizeStroke(0.07)) {
-      const oldPath = document.getElementById(id + "Path");
-      if (oldPath) oldPath.remove();
+    // ── フォント読み込み ─────────────────────────────────────────
+    async function loadFont() {
+      const res = await fetch(FONT_URL);
+      if (!res.ok) throw new Error(`Font load failed: HTTP ${res.status}`);
+      loadedFont = opentype.parse(await res.arrayBuffer());
+    }
+
+    // ── パス生成 ─────────────────────────────────────────────────
+    // charSpacing: 文字間追加ピクセル（負も可）
+    // 戻り値: opentype.Path。NaNが含まれる場合は除去済み
+    function buildPath(font, text, x, y, fontSize, isVertical, charSpacing) {
+      const fontScale = fontSize / font.unitsPerEm;
+      const chars = text.split('');
+      let curX = x, curY = y;
+
+      // opentype.jsのPathを直接構築してNaNを排除
+      const path = new opentype.Path();
+
+      chars.forEach((ch, i) => {
+        const glyph = font.charToGlyph(ch);
+        if (!isVertical && i > 0) {
+          const kern = font.getKerningValue(font.charToGlyph(chars[i-1]), glyph) * fontScale;
+          if (isFinite(kern)) curX += kern;
+        }
+        // glyphのパスコマンドを手動で追加（NaNをスキップ）
+        const gp = glyph.getPath(curX, curY, fontSize);
+        gp.commands.forEach(cmd => {
+          // 全座標がfiniteかチェック
+          const nums = [cmd.x, cmd.y, cmd.x1, cmd.y1, cmd.x2, cmd.y2].filter(v => v !== undefined);
+          if (nums.every(v => isFinite(v))) {
+            path.commands.push(cmd);
+          }
+        });
+        const adv = glyph.advanceWidth * fontScale;
+        if (isVertical) {
+          curY += (isFinite(adv) ? adv : fontSize) + charSpacing;
+        } else {
+          curX += (isFinite(adv) ? adv : fontSize) + charSpacing;
+        }
+      });
+      return path;
+    }
+
+    // パスのbboxを取得（NaNが含まれる場合はnullを返す）
+    function safeBbox(path) {
+      const bb = path.getBoundingBox();
+      if (!isFinite(bb.x1) || !isFinite(bb.y1) || !isFinite(bb.x2) || !isFinite(bb.y2)) return null;
+      if (bb.x1 > bb.x2 || bb.y1 > bb.y2) return null;
+      return bb;
+    }
+
+    // ── テキストをSVGに配置（枠ギリギリ・文字間詰め） ──────────
+    function placeFitText(font, text, zone, id, svgElem, color, strokeWidth, isVertical) {
+      const old = document.getElementById(id + "Path");
+      if (old) old.remove();
       if (!text) return;
 
-      let fontSize = initialFontSize / 10;  // 文字数が多いとはみ出ることがあるため、1/10サイズから開始
-      let path, bbox;
-      const cx = 30, cy = 30, r = 28 - 0.8;
-      let isOverflow = false;
-      let maxFontSize = 60;
+      const zW  = zone.xMax - zone.xMin;
+      const zH  = zone.yMax - zone.yMin;
+      const zCx = (zone.xMin + zone.xMax) / 2;
+      const zCy = (zone.yMin + zone.yMax) / 2;
+      const CIRCLE_CX = 30, CIRCLE_CY = 30, CIRCLE_R = 28 - 0.8;
 
-      let yMin = 3, yMax = 22;
-      if (id === "date") { yMin = 22; yMax = 38; }
-      if (id === "name") { yMin = 38; yMax = 57; }
+      // パスを生成してbboxを返す。ゾーン・円のはみ出しがあればnull
+      function tryLayout(fontSize, charSpacing) {
+        if (!isFinite(fontSize) || !isFinite(charSpacing)) return null;
+        let path, bbox;
 
-      while (fontSize < maxFontSize) {
-        const glyphs = font.stringToGlyphs(text);
-        let textWidth = 0;
-        glyphs.forEach(function (glyph, i) {
-          const prevGlyph = glyphs[i - 1];
-          if (i > 0) textWidth += font.getKerningValue(prevGlyph, glyph);
-          textWidth += glyph.advanceWidth * (fontSize / font.unitsPerEm);
-        });
-        const xLeft = x - textWidth / 2;
-        path = font.getPath(text, xLeft, y, fontSize);
-        bbox = path.getBoundingBox();
-
-        const points = [
-          [bbox.x1, bbox.y1],
-          [bbox.x2, bbox.y1],
-          [bbox.x1, bbox.y2],
-          [bbox.x2, bbox.y2],
-        ];
-        isOverflow = !points.every(([px, py]) => (px - cx) ** 2 + (py - cy) ** 2 <= r ** 2);
-        if (bbox.y1 < yMin || bbox.y2 > yMax) isOverflow = true;
-
-        if (isOverflow) {
-          fontSize -= 1;
-          break;
+        if (!isVertical) {
+          const fontScale = fontSize / font.unitsPerEm;
+          let totalAdv = 0;
+          const chars = text.split('');
+          chars.forEach((ch, i) => {
+            const g = font.charToGlyph(ch);
+            if (i > 0) {
+              const k = font.getKerningValue(font.charToGlyph(chars[i-1]), g) * fontScale;
+              if (isFinite(k)) totalAdv += k;
+            }
+            const adv = g.advanceWidth * fontScale;
+            totalAdv += (isFinite(adv) ? adv : fontSize);
+            if (i < chars.length - 1) totalAdv += charSpacing;
+          });
+          const xStart = zCx - totalAdv / 2;
+          // まず暫定ベースラインで描いてbboxからy中央を合わせる
+          const baseline0 = zCy + fontSize * 0.3;
+          const p0   = buildPath(font, text, xStart, baseline0, fontSize, false, charSpacing);
+          const bb0  = safeBbox(p0);
+          if (!bb0) return null;
+          const yAdj = zCy - (bb0.y1 + bb0.y2) / 2;
+          path = buildPath(font, text, xStart, baseline0 + yAdj, fontSize, false, charSpacing);
+          bbox = safeBbox(path);
+        } else {
+          // 縦書き: まず中央付近で仮生成してオフセット調整
+          const p0  = buildPath(font, text, zCx, zCy, fontSize, true, charSpacing);
+          const bb0 = safeBbox(p0);
+          if (!bb0) return null;
+          const xAdj = zCx - (bb0.x1 + bb0.x2) / 2;
+          const yAdj = zCy - (bb0.y1 + bb0.y2) / 2;
+          path = buildPath(font, text, zCx + xAdj, zCy + yAdj, fontSize, true, charSpacing);
+          bbox = safeBbox(path);
         }
-        fontSize += 1;
+
+        if (!bbox) return null;
+        // ゾーン矩形チェック（少しのマージン許容）
+        if (bbox.x1 < zone.xMin - 0.05 || bbox.x2 > zone.xMax + 0.05) return null;
+        if (bbox.y1 < zone.yMin - 0.05 || bbox.y2 > zone.yMax + 0.05) return null;
+        // 内接円チェック
+        const corners = [[bbox.x1,bbox.y1],[bbox.x2,bbox.y1],[bbox.x1,bbox.y2],[bbox.x2,bbox.y2]];
+        for (const [px,py] of corners) {
+          if ((px-CIRCLE_CX)**2 + (py-CIRCLE_CY)**2 > CIRCLE_R**2 + 0.05) return null;
+        }
+        return { path, bbox };
       }
 
-      const glyphs = font.stringToGlyphs(text);
-      let textWidth = 0;
-      glyphs.forEach(function (glyph, i) {
-        const prevGlyph = glyphs[i - 1];
-        if (i > 0) textWidth += font.getKerningValue(prevGlyph, glyph);
-        textWidth += glyph.advanceWidth * (fontSize / font.unitsPerEm);
-      });
-      const xLeft = x - textWidth / 2;
-      path = font.getPath(text, xLeft, y, fontSize);
+      // Step1: 文字間0で最大フォントサイズを二分探索
+      let lo = 0.5, hi = isVertical ? 50 : 30, bestFs = lo;
+      for (let iter = 0; iter < 35; iter++) {
+        const mid = (lo + hi) / 2;
+        if (tryLayout(mid, 0)) { bestFs = mid; lo = mid; }
+        else hi = mid;
+      }
 
-      bbox = path.getBoundingBox();
-      const yCenter = yMin + (yMax - yMin) / 2;
-      const yOffset = yCenter - (bbox.y1 + bbox.y2) / 2;
-      path = font.getPath(text, xLeft, y + yOffset, fontSize);
+      // Step2: フォントサイズ固定で正の文字間隔を最大化
+      let bestSpacing = 0;
+      if (text.length > 1) {
+        const maxSp = isVertical ? zH / text.length : zW / text.length;
+        let spLo = 0, spHi = maxSp;
+        for (let iter = 0; iter < 25; iter++) {
+          const mid = (spLo + spHi) / 2;
+          if (tryLayout(bestFs, mid)) { bestSpacing = mid; spLo = mid; }
+          else spHi = mid;
+        }
+      }
 
-      const svgPathData = path.toPathData(3);
-      const svg = document.getElementById("Inkan");
-      const newPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      newPath.setAttribute("id", id + "Path");
-      newPath.setAttribute("d", svgPathData);
-      newPath.setAttribute("fill", color);
-      newPath.setAttribute("stroke", color);
-      newPath.setAttribute("stroke-width", strokeWidth);
-      svg.appendChild(newPath);
+      // Step3: 負の文字間でより大きなフォントサイズが取れるか試す
+      let bestNegFs = bestFs, bestNegSp = 0;
+      if (text.length > 1) {
+        let lo2 = bestFs, hi2 = isVertical ? 50 : 30;
+        for (let iter = 0; iter < 25; iter++) {
+          const midFs = (lo2 + hi2) / 2;
+          let found = false;
+          // 負の間隔を -5%～-20% の範囲で試す
+          for (let pct = 0.05; pct <= 0.20; pct += 0.05) {
+            const sp = -midFs * pct;
+            if (tryLayout(midFs, sp)) { bestNegFs = midFs; bestNegSp = sp; found = true; break; }
+          }
+          if (found) lo2 = midFs; else hi2 = midFs;
+        }
+      }
+
+      // より大きいほうを採用
+      let finalFs, finalSp;
+      if (bestNegFs > bestFs + 0.2) {
+        finalFs = bestNegFs; finalSp = bestNegSp;
+      } else {
+        finalFs = bestFs; finalSp = bestSpacing;
+      }
+
+      const result = tryLayout(finalFs, finalSp);
+      if (!result) return;
+
+      // toPathData()を使わずNaN除去済みcommandsから直接d文字列を生成
+      // （toPathData()はQコマンドにNaNが含まれるとSVGが壊れるため）
+      function commandsToD(cmds) {
+        const f = v => v.toFixed(3);
+        return cmds.map(c => {
+          if (c.type==='M') return `M${f(c.x)} ${f(c.y)}`;
+          if (c.type==='L') return `L${f(c.x)} ${f(c.y)}`;
+          if (c.type==='C') return `C${f(c.x1)} ${f(c.y1)} ${f(c.x2)} ${f(c.y2)} ${f(c.x)} ${f(c.y)}`;
+          if (c.type==='Q') return `Q${f(c.x1)} ${f(c.y1)} ${f(c.x)} ${f(c.y)}`;
+          if (c.type==='Z') return 'Z';
+          return '';
+        }).join('');
+      }
+      const svgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      svgPath.setAttribute("id", id + "Path");
+      svgPath.setAttribute("d", commandsToD(result.path.commands));
+      svgPath.setAttribute("fill", color);
+      svgPath.setAttribute("stroke", color);
+      svgPath.setAttribute("stroke-width", strokeWidth);
+      svgElem.appendChild(svgPath);
 
       const textElem = document.getElementById(id + "Text");
       if (textElem) textElem.remove();
     }
 
-    // スタンプ更新
+    // ── 印鑑更新 ─────────────────────────────────────────────────
     function updateStamp() {
-      const date = getCurrentDateFormatted();
-      const dept = document.getElementById("deptInput").value;
-      const name = document.getElementById("nameInput").value;
+      if (!loadedFont) return;
 
+      const date  = getCurrentDateFormatted();
+      const dept  = document.getElementById("deptInput").value;
+      const name  = document.getElementById("nameInput").value;
       const color = randomizeColor("#EF454A");
-      const strokeOuter = randomizeStroke(1.2);
-      const strokeLine = randomizeStroke(0.6);
+      const swOuter = randomizeStroke(1.2);
+      const swLine  = randomizeStroke(0.6);
+      const swText  = randomizeStroke(0.05);
 
-      const svg = document.getElementById("Inkan");
-      svg.querySelector("circle").setAttribute("stroke", color);
-      svg.querySelector("circle").setAttribute("stroke-width", strokeOuter);
-      const lines = svg.querySelectorAll("line");
-      lines[0].setAttribute("stroke", color);
-      lines[0].setAttribute("stroke-width", strokeLine);
-      lines[1].setAttribute("stroke", color);
-      lines[1].setAttribute("stroke-width", strokeLine);
+      // ── 三文判 ──
+      const svgS = document.getElementById("InkanSanmon");
+      svgS.querySelector("circle").setAttribute("stroke", color);
+      svgS.querySelector("circle").setAttribute("stroke-width", swOuter);
+      const lines = svgS.querySelectorAll("line");
+      if (lines[0]) { lines[0].setAttribute("stroke", color); lines[0].setAttribute("stroke-width", swLine); }
+      if (lines[1]) { lines[1].setAttribute("stroke", color); lines[1].setAttribute("stroke-width", swLine); }
+      ["dept","date","name"].forEach(id => { const p = document.getElementById(id+"Path"); if(p) p.remove(); });
 
-      ["date", "dept", "name"].forEach(function (id) {
-        if (!document.getElementById(id + "Text")) {
-          let textElem = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          if (id === "dept") { textElem.setAttribute("x", "30"); textElem.setAttribute("y", "18"); textElem.setAttribute("font-size", "5.6"); }
-          else if (id === "date") { textElem.setAttribute("x", "30"); textElem.setAttribute("y", "32"); textElem.setAttribute("font-size", "7.2"); }
-          else if (id === "name") { textElem.setAttribute("x", "30"); textElem.setAttribute("y", "48"); textElem.setAttribute("font-size", "9.6"); }
-          textElem.setAttribute("fill", color);
-          textElem.setAttribute("text-anchor", "middle");
-          textElem.setAttribute("font-family", "Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif");
-          textElem.setAttribute("font-weight", "700");
-          textElem.setAttribute("id", id + "Text");
-          svg.appendChild(textElem);
-        }
-      });
+      const R = 28 - 0.8;
+      // 各帯の弦幅（円の幾何計算）
+      function chordHW(bandCY) {
+        return Math.sqrt(Math.max(0, R*R - (bandCY - 30)**2)) * 0.97;
+      }
 
-      document.getElementById("dateText").textContent = date;
-      document.getElementById("deptText").textContent = dept;
-      document.getElementById("nameText").textContent = name;
-      document.getElementById("dateText").style.display = "";
-      document.getElementById("deptText").style.display = "";
-      document.getElementById("nameText").style.display = "";
+      try {
+        placeFitText(loadedFont, dept, {xMin:30-chordHW(12.5), xMax:30+chordHW(12.5), yMin:3.5,  yMax:21.5}, "dept",  svgS, color, swText, false);
+        placeFitText(loadedFont, date, {xMin:30-chordHW(30),   xMax:30+chordHW(30),   yMin:22.5, yMax:37.5}, "date",  svgS, color, swText, false);
+        placeFitText(loadedFont, name, {xMin:30-chordHW(47.5), xMax:30+chordHW(47.5), yMin:38.5, yMax:56.5}, "name",  svgS, color, swText, false);
+      } catch(e) { console.error("三文判エラー:", e); }
 
-      ["date", "dept", "name"].forEach(function (id) {
-        const oldPath = document.getElementById(id + "Path");
-        if (oldPath) oldPath.remove();
-      });
-
-      opentype.load('fonts/YujiSyuku-Regular.ttf', function (err, font) {
-        if (err) {
-          alert('フォントの読み込みに失敗しました');
-          return;
-        }
-        const strokeDept = randomizeStroke(0.07);
-        const strokeDate = randomizeStroke(0.07);
-        const strokeName = randomizeStroke(0.07);
-
-        textToPathFitGrow(font, dept, 30, 18, 5.6, "dept", color, strokeDept);
-        textToPathFitGrow(font, date, 30, 32, 7.2, "date", color, strokeDate);
-        textToPathFitGrow(font, name, 30, 48, 9.6, "name", color, strokeName);
-      });
+      // ── 縦書き印 ──
+      const svgT = document.getElementById("InkanTateName");
+      if (svgT) {
+        svgT.querySelector("circle").setAttribute("stroke", color);
+        svgT.querySelector("circle").setAttribute("stroke-width", randomizeStroke(1.2));
+        const op = document.getElementById("tateNamePath"); if(op) op.remove();
+        try {
+          const hw = R / Math.SQRT2 * 0.97;
+          placeFitText(loadedFont, name,
+            {xMin:30-hw, xMax:30+hw, yMin:30-R*0.97, yMax:30+R*0.97},
+            "tateName", svgT, color, randomizeStroke(0.07), true);
+        } catch(e) { console.error("縦書きエラー:", e); }
+      }
     }
 
+    // ── イベント ─────────────────────────────────────────────────
     function getQueryParams() {
-      const params = {};
-      location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (str, key, value) {
-        params[decodeURIComponent(key)] = decodeURIComponent(value.replace(/\+/g, " "));
-        return "";
+      const p = {};
+      location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, (s,k,v) => {
+        p[decodeURIComponent(k)] = decodeURIComponent(v.replace(/\+/g," "));
       });
-      return params;
+      return p;
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-      const params = getQueryParams();
-      if (params.dept) document.getElementById("deptInput").value = params.dept;
-      if (params.name) document.getElementById("nameInput").value = params.name;
-
-      const currentDate = getCurrentDateFormatted();
-      document.getElementById("currentDate").textContent = currentDate;
-      document.getElementById("dateText").textContent = currentDate;
-      document.getElementById("deptText").textContent = "";
-      document.getElementById("nameText").textContent = "";
+    document.addEventListener("DOMContentLoaded", async () => {
+      try { await loadFont(); } catch(e) { console.warn("Font load failed:", e); }
+      const p = getQueryParams();
+      if (p.dept) document.getElementById("deptInput").value = p.dept;
+      if (p.name) document.getElementById("nameInput").value = p.name;
+      document.getElementById("currentDate").textContent = getCurrentDateFormatted();
       updateStamp();
     });
 
-    function onUpdateButton() {
-      const dept = encodeURIComponent(document.getElementById("deptInput").value);
-      const name = encodeURIComponent(document.getElementById("nameInput").value);
-      const url = `${location.pathname}?dept=${dept}&name=${name}`;
-      location.href = url;
+    function onUpdateButton() { updateStamp(); }
+
+    // ── SVG/PNGダウンロード ───────────────────────────────────────
+    function downloadSVG(svgId, typeName) {
+      const name = document.getElementById("nameInput").value || "印鑑";
+      const el = document.getElementById(svgId);
+      if (!el) { alert("SVG要素が見つかりません。"); return; }
+      const blob = new Blob([new XMLSerializer().serializeToString(el)], { type:"image/svg+xml;charset=utf-8" });
+      const a = Object.assign(document.createElement("a"), { href:URL.createObjectURL(blob), download:`${name}_${typeName}.svg` });
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
-    // downloadSVG, downloadPDF 関数を修正
-    function downloadSVG() {
-      const svg = document.getElementById("Inkan");
-      const serializer = new XMLSerializer();
-      let source = serializer.serializeToString(svg);
-      source = source.replace(/>\s+</g, '><').replace(/\s{2,}/g, ' ').replace(/[\r\n]+/g, '').replace(/ ?([=]) ?/g, '$1');
-      const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-
-      // 日付をyyyymmdd形式で取得
-      const today = new Date();
-      const yyyymmdd = today.getFullYear().toString() +
-        String(today.getMonth() + 1).padStart(2, "0") +
-        String(today.getDate()).padStart(2, "0");
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Inkan_${yyyymmdd}.svg`;
-      a.click();
-      URL.revokeObjectURL(url);
+    async function downloadPNG(svgId, typeName) {
+      const name = document.getElementById("nameInput").value || "印鑑";
+      const el = document.getElementById(svgId);
+      if (!el) { alert("SVG要素が見つかりません。"); return; }
+      let svgStr = new XMLSerializer().serializeToString(el);
+      if (!svgStr.includes("xmlns=")) svgStr = svgStr.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+      const scale = 10, W = 60*scale, H = 60*scale;
+      const canvas = Object.assign(document.createElement("canvas"), {width:W, height:H});
+      const ctx = canvas.getContext("2d");
+      await new Promise((res,rej) => {
+        const img = new Image();
+        img.onload = res; img.onerror = rej;
+        img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgStr)));
+      });
+      ctx.drawImage(canvas.width ? canvas : canvas, 0, 0);
+      const img2 = new Image();
+      img2.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgStr)));
+      await new Promise(res => { img2.onload = res; });
+      ctx.drawImage(img2, 0, 0, W, H);
+      const a = Object.assign(document.createElement("a"), { href:canvas.toDataURL("image/png"), download:`${name}_${typeName}.png` });
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
-    function downloadPDF() {
-      const svgElem = document.getElementById("Inkan");
-      const width = svgElem.viewBox.baseVal.width || 60;
-      const height = svgElem.viewBox.baseVal.height || 60;
-      const serializer = new XMLSerializer();
-      const svgString = serializer.serializeToString(svgElem);
-      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
+    // ── EMF出力（ベクター版 v5） ─────────────────────────────────
+    // 修正: Q/q (quadratic bezier) コマンドをcubicに変換してサポート
+    //       NaN座標のコマンドをスキップ
+    //       MM_TEXT + 600x600px座標系
 
-      // 日付をyyyymmdd形式で取得
-      const today = new Date();
-      const yyyymmdd = today.getFullYear().toString() +
-        String(today.getMonth() + 1).padStart(2, "0") +
-        String(today.getDate()).padStart(2, "0");
+    function downloadEMF(svgId, typeName) {
+      const nameVal = document.getElementById("nameInput").value || "印鑑";
+      const svgEl   = document.getElementById(svgId);
+      if (!svgEl) { alert("SVG要素が見つかりません。"); return; }
 
-      const img = new window.Image();
-      img.onload = function () {
-        const canvas = document.createElement("canvas");
-        canvas.width = width * 5;
-        canvas.height = height * 5;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const pngData = canvas.toDataURL("image/png");
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({
-          orientation: "portrait",
-          unit: "mm",
-          format: [width, height]
+      const VB=60, SC=10, W=600, H=600;
+      const toP = v => Math.round(v * SC);
+      const FRAME = Math.round(W * 25.4 * 100 / 96); // 15875
+
+      function parseColor(s) {
+        if (!s || s==="none") return null;
+        s = s.trim();
+        const m = s.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+        if (m) return {r:+m[1],g:+m[2],b:+m[3]};
+        if (s[0]==="#") {
+          const h=s.slice(1);
+          if(h.length===6) return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};
+          if(h.length===3) return {r:parseInt(h[0]+h[0],16),g:parseInt(h[1]+h[1],16),b:parseInt(h[2]+h[2],16)};
+        }
+        return {r:239,g:69,b:74};
+      }
+      const cref = c => ((c.b&0xff)<<16)|((c.g&0xff)<<8)|(c.r&0xff);
+
+      const recs = [];
+      function rec(itype, arr) {
+        const a = arr instanceof Uint8Array ? arr : new Uint8Array(arr);
+        const sz = 8 + a.length, tot = sz + ((4-sz%4)%4);
+        const b = new Uint8Array(tot);
+        new DataView(b.buffer).setUint32(0, itype>>>0, true);
+        new DataView(b.buffer).setUint32(4, tot>>>0,   true);
+        b.set(a, 8);
+        recs.push(b);
+      }
+      function B(){
+        const a=[];
+        return {
+          u32(v){v=v>>>0;a.push(v&0xff,(v>>8)&0xff,(v>>16)&0xff,(v>>24)&0xff);return this;},
+          s32(v){return this.u32(v>>>0);},
+          u16(v){v=v&0xffff;a.push(v&0xff,(v>>8)&0xff);return this;},
+          get(){return new Uint8Array(a);}
+        };
+      }
+
+      const T={
+        SETMAPMODE:17, SETBKMODE:18, SETPOLYFILLMODE:19,
+        CLOSEFIGURE:21, MOVETOEX:27,
+        SELECTOBJECT:37, CREATEPEN:38, CREATEBRUSHINDIRECT:39, DELETEOBJECT:40,
+        LINETO:54,
+        BEGINPATH:59, ENDPATH:60,
+        FILLPATH:62, STROKEANDFILLPATH:63, STROKEPATH:64,
+        POLYBEZIERTO16:88, EOF:14,
+      };
+
+      let nextH = 1;
+      const createPen=(c,wpx,style=0)=>{
+        const h=nextH++;
+        rec(T.CREATEPEN, B().u32(h).u32(style).s32(wpx).s32(0).u32(c?cref(c):0).get());
+        return h;
+      };
+      const createBrush=(c,nil=false)=>{
+        const h=nextH++;
+        rec(T.CREATEBRUSHINDIRECT, B().u32(h).u32(nil?1:0).u32(c&&!nil?cref(c):0).u32(0).get());
+        return h;
+      };
+      const sel=h=>rec(T.SELECTOBJECT, B().u32(h).get());
+      const del=h=>rec(T.DELETEOBJECT,  B().u32(h).get());
+
+      function bezTo(cx,cy,p1,p2,p3){
+        const ax=[cx,p1[0],p2[0],p3[0]], ay=[cy,p1[1],p2[1],p3[1]];
+        rec(T.POLYBEZIERTO16,
+          B().s32(Math.min(...ax)).s32(Math.min(...ay)).s32(Math.max(...ax)).s32(Math.max(...ay))
+             .u32(3).u16(p1[0]&0xffff).u16(p1[1]&0xffff)
+                   .u16(p2[0]&0xffff).u16(p2[1]&0xffff)
+                   .u16(p3[0]&0xffff).u16(p3[1]&0xffff).get());
+      }
+
+      function emitCircle(cx,cy,r){
+        const k=0.5523;
+        const P=[[toP(cx+r),toP(cy)],
+          [toP(cx+r),toP(cy+r*k)],[toP(cx+r*k),toP(cy+r)],[toP(cx),toP(cy+r)],
+          [toP(cx-r*k),toP(cy+r)],[toP(cx-r),toP(cy+r*k)],[toP(cx-r),toP(cy)],
+          [toP(cx-r),toP(cy-r*k)],[toP(cx-r*k),toP(cy-r)],[toP(cx),toP(cy-r)],
+          [toP(cx+r*k),toP(cy-r)],[toP(cx+r),toP(cy-r*k)],[toP(cx+r),toP(cy)]];
+        rec(T.BEGINPATH,[]);
+        rec(T.MOVETOEX, B().s32(P[0][0]).s32(P[0][1]).s32(0).s32(0).get());
+        let cx2=P[0][0],cy2=P[0][1];
+        for(let s=0;s<4;s++){
+          bezTo(cx2,cy2,P[1+s*3],P[2+s*3],P[3+s*3]);
+          cx2=P[3+s*3][0]; cy2=P[3+s*3][1];
+        }
+        rec(T.CLOSEFIGURE,[]); rec(T.ENDPATH,[]);
+      }
+
+      function emitLine(x1,y1,x2,y2){
+        rec(T.BEGINPATH,[]);
+        rec(T.MOVETOEX, B().s32(toP(x1)).s32(toP(y1)).s32(0).s32(0).get());
+        rec(T.LINETO,   B().s32(toP(x2)).s32(toP(y2)).get());
+        rec(T.ENDPATH,[]);
+      }
+
+      // opentype.js の commands 配列を直接 EMF に変換
+      // d文字列の再パース（NaN問題）を回避するため commands を直接使う
+      // Q(二次ベジェ) → C(三次ベジェ)変換込み
+      //
+      // ★重要: opentype.jsの getPath() は Z コマンドを発行しないため、
+      // 新しい M（contour開始）の前と、ENDPATH 前に CLOSEFIGURE を自動発行する。
+      // これがないと Word/Excel はパスを閉じられず描画しない。
+      function emitPathCommands(cmds){
+        rec(T.BEGINPATH,[]);
+        let cx=0, cy=0;
+        let inFigure = false;  // 現在 figure 内か（Mが発行された後）
+        cmds.forEach(c => {
+          if (c.type==='M'){
+            if(!isFinite(c.x)||!isFinite(c.y)) return;
+            // 新しい contour 開始前に前の figure を閉じる
+            if (inFigure) rec(T.CLOSEFIGURE,[]);
+            cx=c.x; cy=c.y;
+            rec(T.MOVETOEX, B().s32(toP(cx)).s32(toP(cy)).s32(0).s32(0).get());
+            inFigure = true;
+          } else if(c.type==='L'){
+            if(!isFinite(c.x)||!isFinite(c.y)) return;
+            cx=c.x; cy=c.y;
+            rec(T.LINETO, B().s32(toP(cx)).s32(toP(cy)).get());
+          } else if(c.type==='C'){
+            if(!isFinite(c.x1)||!isFinite(c.y1)||!isFinite(c.x2)||!isFinite(c.y2)||!isFinite(c.x)||!isFinite(c.y)) return;
+            bezTo(toP(cx),toP(cy),[toP(c.x1),toP(c.y1)],[toP(c.x2),toP(c.y2)],[toP(c.x),toP(c.y)]);
+            cx=c.x; cy=c.y;
+          } else if(c.type==='Q'){
+            // Quadratic(Q) → Cubic(C): de Casteljau
+            // cp1 = P0 + 2/3*(P1-P0),  cp2 = P2 + 2/3*(P1-P2)
+            if(!isFinite(c.x1)||!isFinite(c.y1)||!isFinite(c.x)||!isFinite(c.y)) return;
+            const c1x=cx   + 2/3*(c.x1-cx),  c1y=cy   + 2/3*(c.y1-cy);
+            const c2x=c.x  + 2/3*(c.x1-c.x), c2y=c.y  + 2/3*(c.y1-c.y);
+            bezTo(toP(cx),toP(cy),[toP(c1x),toP(c1y)],[toP(c2x),toP(c2y)],[toP(c.x),toP(c.y)]);
+            cx=c.x; cy=c.y;
+          } else if(c.type==='Z'){
+            rec(T.CLOSEFIGURE,[]);
+            inFigure = false;
+          }
         });
-        pdf.addImage(pngData, 'PNG', 0, 0, width, height);
-        pdf.save(`Inkan_${yyyymmdd}.pdf`);
-        URL.revokeObjectURL(url);
+        // 最後の figure を閉じる
+        if (inFigure) rec(T.CLOSEFIGURE,[]);
+        rec(T.ENDPATH,[]);
+      }
+
+      // d文字列をパースしてopentype commands形式に変換 → emitPathCommands
+      // Q/q(二次ベジェ)はそのままcommands配列に残す（emitPathCommandsで変換）
+      function emitDString(d){
+        const toks = d.match(/[MLCQZmlcqz]|NaN|[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?/g) || [];
+        let i=0, cx=0, cy=0;
+        const cmds=[];
+        while(i < toks.length){
+          const tok=toks[i];
+          if(!/^[MLCQZmlcqz]$/.test(tok)){i++;continue;} // 先頭がコマンド文字でなければスキップ
+          const cmd=tok; i++;
+          const num=(n=1)=>{
+            const vals=[];
+            for(let k=0;k<n;k++){
+              const v=toks[i++];
+              vals.push(v==='NaN'?NaN:parseFloat(v));
+            }
+            return n===1?vals[0]:vals;
+          };
+          if(cmd==='M'||cmd==='m'){
+            const [x,y]=num(2);
+            if(!isFinite(x)||!isFinite(y))continue;
+            cx=cmd==='M'?x:cx+x; cy=cmd==='M'?y:cy+y;
+            cmds.push({type:'M',x:cx,y:cy});
+          } else if(cmd==='L'||cmd==='l'){
+            const [x,y]=num(2);
+            if(!isFinite(x)||!isFinite(y))continue;
+            cx=cmd==='L'?x:cx+x; cy=cmd==='L'?y:cy+y;
+            cmds.push({type:'L',x:cx,y:cy});
+          } else if(cmd==='C'||cmd==='c'){
+            const [x1,y1,x2,y2,x,y]=num(6);
+            if(!isFinite(x1)||!isFinite(y1)||!isFinite(x2)||!isFinite(y2)||!isFinite(x)||!isFinite(y))continue;
+            const rel=cmd==='c';
+            cmds.push({type:'C',x1:rel?cx+x1:x1,y1:rel?cy+y1:y1,x2:rel?cx+x2:x2,y2:rel?cy+y2:y2,x:rel?cx+x:x,y:rel?cy+y:y});
+            cx=rel?cx+x:x; cy=rel?cy+y:y;
+          } else if(cmd==='Q'||cmd==='q'){
+            const [x1,y1,x,y]=num(4);
+            if(!isFinite(x1)||!isFinite(y1)||!isFinite(x)||!isFinite(y))continue;
+            const rel=cmd==='q';
+            cmds.push({type:'Q',x1:rel?cx+x1:x1,y1:rel?cy+y1:y1,x:rel?cx+x:x,y:rel?cy+y:y});
+            cx=rel?cx+x:x; cy=rel?cy+y:y;
+          } else if(cmd==='Z'||cmd==='z'){
+            cmds.push({type:'Z'});
+          }
+        }
+        emitPathCommands(cmds);
+      }
+
+      function processEl(el){
+        const tag=el.tagName.toLowerCase();
+        const fa=el.getAttribute("fill")||"none";
+        const sa=el.getAttribute("stroke")||"none";
+        const sw=parseFloat(el.getAttribute("stroke-width")||"0");
+        const fc=fa!=="none"?parseColor(fa):null;
+        const sc=sa!=="none"?parseColor(sa):null;
+        const penH = sc ? createPen(sc, Math.max(1,toP(sw))) : createPen(null,0,5);
+        const brH  = fc ? createBrush(fc) : createBrush(null,true);
+        sel(penH); sel(brH);
+        if(tag==="circle"){
+          emitCircle(parseFloat(el.getAttribute("cx")||0),parseFloat(el.getAttribute("cy")||0),parseFloat(el.getAttribute("r")||0));
+        } else if(tag==="line"){
+          emitLine(parseFloat(el.getAttribute("x1")||0),parseFloat(el.getAttribute("y1")||0),
+                   parseFloat(el.getAttribute("x2")||0),parseFloat(el.getAttribute("y2")||0));
+        } else if(tag==="path"){
+          // SVGのd文字列ではなく、buildPathが生成したcommands配列を直接使う
+          // ただしSVG要素はDOMに追加済みのopentype pathなのでd属性から取る場合
+          // NaN問題を避けるため: SVGのpath要素のcommands配列は直接アクセスできないので
+          // d属性のパーサを使うが、Q→Cに正しく変換する
+          const d=el.getAttribute("d");
+          if(d) emitDString(d);
+        } else { del(penH); del(brH); return; }
+        if(fc&&sc) rec(T.STROKEANDFILLPATH,[]);
+        else if(sc) rec(T.STROKEPATH,[]);
+        else if(fc) rec(T.FILLPATH,[]);
+        del(penH); del(brH);
+      }
+
+      // EMRタイプ定数を拡張
+      const T2 = {
+        SETWINDOWEXTEX:9, SETWINDOWORGEX:10,
+        SETVIEWPORTEXTEX:11, SETVIEWPORTORGEX:12,
       };
-      img.onerror = function () {
-        alert("SVG画像の変換に失敗しました。");
-        URL.revokeObjectURL(url);
-      };
-      img.src = url;
+
+      // === 初期設定レコード ===
+      // Excel/Inkscape互換のために、MM_TEXTでも明示的にWindow/Viewportを設定する
+      // LibreOfficeで生成されるEMFと同じ順序を踏襲
+      rec(T.SETMAPMODE,         B().u32(1).get());                       // MM_TEXT
+      rec(T2.SETWINDOWEXTEX,    B().s32(W).s32(H).get());                // Window extent = 600x600
+      rec(T2.SETWINDOWORGEX,    B().s32(0).s32(0).get());                // Window origin = 0,0
+      rec(T2.SETVIEWPORTEXTEX,  B().s32(W).s32(H).get());                // Viewport extent = 600x600
+      rec(T2.SETVIEWPORTORGEX,  B().s32(0).s32(0).get());                // Viewport origin = 0,0
+      rec(T.SETBKMODE,          B().u32(1).get());                       // TRANSPARENT
+      rec(T.SETPOLYFILLMODE,    B().u32(2).get());                       // WINDING
+
+      for(const ch of svgEl.children) processEl(ch);
+
+      rec(T.EOF, B().u32(0).u32(16).u32(0).get());
+      const lr=recs[recs.length-1];
+      new DataView(lr.buffer).setUint32(lr.byteLength-4, lr.byteLength, true);
+
+      let bodySize=0; for(const r of recs) bodySize+=r.byteLength;
+      const grand=108+bodySize, nRec=recs.length+1;
+
+      const hdr=new Uint8Array(108); const dv=new DataView(hdr.buffer); let o=0;
+      const H32=v=>{dv.setUint32(o,v>>>0,true);o+=4;};
+      const S32=v=>{dv.setInt32(o,v,true);o+=4;};
+      const H16=v=>{dv.setUint16(o,v&0xffff,true);o+=2;};
+      H32(1);H32(108);
+      S32(0);S32(0);S32(W);S32(H);
+      S32(0);S32(0);S32(FRAME);S32(FRAME);
+      H32(0x464D4520);H32(0x00010000);
+      H32(grand);H32(nRec);
+      H16(nextH);H16(0);
+      H32(0);H32(0);H32(0);    // nDesc=0, offDesc=0 (no description), nPalEntries=0
+      H32(W);H32(H);
+      H32(Math.round(W*25.4/96));H32(Math.round(H*25.4/96));
+      H32(0);H32(0);H32(0);
+      H32(Math.round(W*25400/96));H32(Math.round(H*25400/96));
+
+      const out=new Uint8Array(grand); out.set(hdr,0); let off=108;
+      for(const r of recs){out.set(r,off);off+=r.byteLength;}
+
+      const blob=new Blob([out],{type:"image/x-emf"});
+      const url=URL.createObjectURL(blob);
+      const a=Object.assign(document.createElement("a"),{href:url,download:`${nameVal}_${typeName}.emf`});
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
   </script>
 </body>
