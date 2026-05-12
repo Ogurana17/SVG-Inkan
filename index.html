@@ -198,13 +198,14 @@
 
     // ── パス生成 ─────────────────────────────────────────────────
     // charSpacing: 文字間追加ピクセル（負も可）
+    // scaleX: X方向スケール（1.0=通常, >1.0=横長）。中心はbbox中央
     // 戻り値: opentype.Path。NaNが含まれる場合は除去済み
-    function buildPath(font, text, x, y, fontSize, isVertical, charSpacing) {
+    function buildPath(font, text, x, y, fontSize, isVertical, charSpacing, scaleX) {
+      scaleX = scaleX || 1.0;
       const fontScale = fontSize / font.unitsPerEm;
       const chars = text.split('');
       let curX = x, curY = y;
 
-      // opentype.jsのPathを直接構築してNaNを排除
       const path = new opentype.Path();
 
       chars.forEach((ch, i) => {
@@ -213,10 +214,8 @@
           const kern = font.getKerningValue(font.charToGlyph(chars[i-1]), glyph) * fontScale;
           if (isFinite(kern)) curX += kern;
         }
-        // glyphのパスコマンドを手動で追加（NaNをスキップ）
         const gp = glyph.getPath(curX, curY, fontSize);
         gp.commands.forEach(cmd => {
-          // 全座標がfiniteかチェック
           const nums = [cmd.x, cmd.y, cmd.x1, cmd.y1, cmd.x2, cmd.y2].filter(v => v !== undefined);
           if (nums.every(v => isFinite(v))) {
             path.commands.push(cmd);
@@ -229,6 +228,21 @@
           curX += (isFinite(adv) ? adv : fontSize) + charSpacing;
         }
       });
+
+      // scaleX適用: パス全体のX座標を中心基準でスケーリング
+      if (scaleX !== 1.0 && path.commands.length > 0) {
+        // まずbbox中心を求める
+        const bb = path.getBoundingBox();
+        if (isFinite(bb.x1) && isFinite(bb.x2)) {
+          const cx = (bb.x1 + bb.x2) / 2;
+          path.commands.forEach(cmd => {
+            if (cmd.x  !== undefined && isFinite(cmd.x))  cmd.x  = cx + (cmd.x  - cx) * scaleX;
+            if (cmd.x1 !== undefined && isFinite(cmd.x1)) cmd.x1 = cx + (cmd.x1 - cx) * scaleX;
+            if (cmd.x2 !== undefined && isFinite(cmd.x2)) cmd.x2 = cx + (cmd.x2 - cx) * scaleX;
+          });
+        }
+      }
+
       return path;
     }
 
@@ -253,7 +267,9 @@
       const CIRCLE_CX = 30, CIRCLE_CY = 30, CIRCLE_R = 28 - 0.8;
 
       // パスを生成してbboxを返す。ゾーン・円のはみ出しがあればnull
-      function tryLayout(fontSize, charSpacing) {
+      // scaleX: 縦書き時のX方向スケール（横長化）
+      function tryLayout(fontSize, charSpacing, scaleX) {
+        scaleX = scaleX || 1.0;
         if (!isFinite(fontSize) || !isFinite(charSpacing)) return null;
         let path, bbox;
 
@@ -272,32 +288,34 @@
             if (i < chars.length - 1) totalAdv += charSpacing;
           });
           const xStart = zCx - totalAdv / 2;
-          // まず暫定ベースラインで描いてbboxからy中央を合わせる
           const baseline0 = zCy + fontSize * 0.3;
-          const p0   = buildPath(font, text, xStart, baseline0, fontSize, false, charSpacing);
+          const p0   = buildPath(font, text, xStart, baseline0, fontSize, false, charSpacing, 1.0);
           const bb0  = safeBbox(p0);
           if (!bb0) return null;
           const yAdj = zCy - (bb0.y1 + bb0.y2) / 2;
-          path = buildPath(font, text, xStart, baseline0 + yAdj, fontSize, false, charSpacing);
+          path = buildPath(font, text, xStart, baseline0 + yAdj, fontSize, false, charSpacing, 1.0);
           bbox = safeBbox(path);
         } else {
-          // 縦書き: まず中央付近で仮生成してオフセット調整
-          const p0  = buildPath(font, text, zCx, zCy, fontSize, true, charSpacing);
+          // 縦書き: scaleX で横幅を拡大
+          const p0  = buildPath(font, text, zCx, zCy, fontSize, true, charSpacing, scaleX);
           const bb0 = safeBbox(p0);
           if (!bb0) return null;
           const xAdj = zCx - (bb0.x1 + bb0.x2) / 2;
           const yAdj = zCy - (bb0.y1 + bb0.y2) / 2;
-          path = buildPath(font, text, zCx + xAdj, zCy + yAdj, fontSize, true, charSpacing);
+          path = buildPath(font, text, zCx + xAdj, zCy + yAdj, fontSize, true, charSpacing, scaleX);
           bbox = safeBbox(path);
         }
 
         if (!bbox) return null;
-        // ゾーン矩形チェック（少しのマージン許容）
         if (bbox.x1 < zone.xMin - 0.05 || bbox.x2 > zone.xMax + 0.05) return null;
         if (bbox.y1 < zone.yMin - 0.05 || bbox.y2 > zone.yMax + 0.05) return null;
-        // 内接円チェック
-        const corners = [[bbox.x1,bbox.y1],[bbox.x2,bbox.y1],[bbox.x1,bbox.y2],[bbox.x2,bbox.y2]];
-        for (const [px,py] of corners) {
+        // 円内チェック（4隅＋上下中央の6点で判定、横長化に対応）
+        const checkPts = [
+          [bbox.x1,bbox.y1],[bbox.x2,bbox.y1],
+          [bbox.x1,bbox.y2],[bbox.x2,bbox.y2],
+          [bbox.x1,(bbox.y1+bbox.y2)/2],[bbox.x2,(bbox.y1+bbox.y2)/2],
+        ];
+        for (const [px,py] of checkPts) {
           if ((px-CIRCLE_CX)**2 + (py-CIRCLE_CY)**2 > CIRCLE_R**2 + 0.05) return null;
         }
         return { path, bbox };
@@ -375,6 +393,247 @@
       if (textElem) textElem.remove();
     }
 
+    // ── 縦書き印鑑（グリッド対応版 v2）──────────────────────────
+    // 1〜3文字: 縦1列、横引き伸ばし(scaleX)で円横幅いっぱい
+    // 4文字以上: rows×cols グリッド（rows≧cols）
+    //   読み順: 右列→左列、各列上→下（縦書き日本語の標準）
+    //   端数列: グリッド全体のセル高さ基準で縦方向中央寄せ
+    //   全文字: scaleXで横幅をギリギリまで使う
+    function placeTateStamp(font, text, svgElem, color, strokeWidth) {
+      if (!text) return;
+      const CX = 30, CY = 30, R = 28 - 0.8;
+      const n = text.length;
+
+      // ── グリッドサイズ決定 ──
+      let rows, cols;
+      if (n <= 3) {
+        rows = n; cols = 1;
+      } else {
+        cols = Math.round(Math.sqrt(n));
+        rows = Math.ceil(n / cols);
+        if (rows < cols) { const t = rows; rows = cols; cols = t; }
+      }
+
+      // ── 各列の文字リストを作成 ──
+      // columns[0]=右端列, columns[cols-1]=左端列
+      const columns = [];
+      let idx = 0;
+      for (let c = 0; c < cols; c++) {
+        const col = [];
+        for (let r = 0; r < rows && idx < n; r++) {
+          col.push(text[idx++]);
+        }
+        columns.push(col);
+      }
+
+      // ── tryGridLayout: fontSize, scaleX, gap(文字間の余白) で配置を試行 ──
+      // 各文字の実測bboxからセルサイズを決定し、gap分だけ隙間を設ける
+      function tryGridLayout(fontSize, scaleX, gap) {
+        if (gap === undefined) gap = 0;
+
+        // Step A: 全文字の実測bboxサイズを取得
+        const glyphInfos = []; // {ch, w, h} 実測幅/高さ
+        for (let i = 0; i < n; i++) {
+          const ch = text[i];
+          const p = buildPath(font, ch, 0, fontSize * 0.35, fontSize, false, 0, scaleX);
+          const bb = safeBbox(p);
+          if (!bb) return null;
+          glyphInfos.push({ ch, w: bb.x2 - bb.x1, h: bb.y2 - bb.y1 });
+        }
+
+        // Step B: 列ごとの最大幅と、全体の最大高さを計算
+        let idx2 = 0;
+        const colMaxW = []; // 各列の最大文字幅
+        const colCharsH = []; // 各列の文字高さ配列
+        for (let ci = 0; ci < cols; ci++) {
+          let maxW = 0;
+          const hs = [];
+          for (let ri = 0; ri < rows && idx2 < n; ri++) {
+            maxW = Math.max(maxW, glyphInfos[idx2].w);
+            hs.push(glyphInfos[idx2].h);
+            idx2++;
+          }
+          colMaxW.push(maxW);
+          colCharsH.push(hs);
+        }
+
+        // 行の最大高さ（各行位置にある文字の最大高さ）
+        const rowMaxH = [];
+        for (let ri = 0; ri < rows; ri++) {
+          let maxH = 0;
+          let gi = 0;
+          for (let ci = 0; ci < cols; ci++) {
+            const base = ci * rows;
+            if (base + ri < n) maxH = Math.max(maxH, glyphInfos[base + ri].h);
+          }
+          rowMaxH.push(maxH);
+        }
+
+        // Step C: グリッド全体サイズ
+        const totalW = colMaxW.reduce((a, b) => a + b, 0) + gap * (cols - 1);
+        const totalH = rowMaxH.reduce((a, b) => a + b, 0) + gap * (rows - 1);
+
+        // 粗いチェック
+        if (totalW / 2 > R || totalH / 2 > R) return null;
+
+        // Step D: 各文字をグリッド内に配置
+        // 列X位置: 右端列(ci=0)が右側
+        const colCenters = []; // 各列のX中心
+        {
+          // 列左端の累積位置
+          let xCur = CX + totalW / 2; // 右端
+          for (let ci = 0; ci < cols; ci++) {
+            xCur -= colMaxW[ci] / 2;
+            colCenters.push(xCur);
+            xCur -= colMaxW[ci] / 2 + gap;
+          }
+        }
+
+        // 行Y位置: 全体の上端から累積
+        const rowCenters = [];
+        {
+          let yCur = CY - totalH / 2;
+          for (let ri = 0; ri < rows; ri++) {
+            yCur += rowMaxH[ri] / 2;
+            rowCenters.push(yCur);
+            yCur += rowMaxH[ri] / 2 + gap;
+          }
+        }
+
+        const allPaths = [];
+        let allBB = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
+
+        for (let ci = 0; ci < columns.length; ci++) {
+          const colChars = columns[ci];
+          const colCount = colChars.length;
+
+          // 端数列の中央寄せ: この列の実際の文字高さ合計
+          const colH = colCharsH[ci].reduce((a, b) => a + b, 0) + gap * (colCount - 1);
+          const yOffset = (totalH - colH) / 2; // 中央寄せオフセット
+
+          // この列の行Y位置を再計算（中央寄せ）
+          const colRowCenters = [];
+          {
+            let yCur = CY - totalH / 2 + yOffset;
+            for (let ri = 0; ri < colCount; ri++) {
+              yCur += colCharsH[ci][ri] / 2;
+              colRowCenters.push(yCur);
+              yCur += colCharsH[ci][ri] / 2 + gap;
+            }
+          }
+
+          for (let ri = 0; ri < colCount; ri++) {
+            const ch = colChars[ri];
+            const cellCX = colCenters[ci];
+            const cellCY = colRowCenters[ri];
+
+            const p0 = buildPath(font, ch, cellCX, cellCY + fontSize * 0.35, fontSize, false, 0, scaleX);
+            const bb0 = safeBbox(p0);
+            if (!bb0) return null;
+            const xAdj = cellCX - (bb0.x1 + bb0.x2) / 2;
+            const yAdj = cellCY - (bb0.y1 + bb0.y2) / 2;
+            const p1 = buildPath(font, ch, cellCX + xAdj, cellCY + fontSize * 0.35 + yAdj, fontSize, false, 0, scaleX);
+            const bb1 = safeBbox(p1);
+            if (!bb1) return null;
+
+            allPaths.push(p1);
+            allBB.x1 = Math.min(allBB.x1, bb1.x1);
+            allBB.y1 = Math.min(allBB.y1, bb1.y1);
+            allBB.x2 = Math.max(allBB.x2, bb1.x2);
+            allBB.y2 = Math.max(allBB.y2, bb1.y2);
+          }
+        }
+
+        // 円内チェック（外周＋中間点 計12点）
+        const bx1 = allBB.x1, by1 = allBB.y1, bx2 = allBB.x2, by2 = allBB.y2;
+        const mx = (bx1 + bx2) / 2, my = (by1 + by2) / 2;
+        const checkPts = [
+          [bx1,by1],[bx2,by1],[bx1,by2],[bx2,by2],
+          [bx1,my],[bx2,my],[mx,by1],[mx,by2],
+          [bx1,(by1+my)/2],[bx1,(by2+my)/2],
+          [bx2,(by1+my)/2],[bx2,(by2+my)/2],
+        ];
+        for (const [px, py] of checkPts) {
+          if ((px - CX)**2 + (py - CY)**2 > R*R + 0.05) return null;
+        }
+        return { paths: allPaths, bbox: allBB };
+      }
+
+      // ── 最適化探索（gap=0 で文字間をギリギリに詰める）──
+      const GAP = 0.3; // 最小余白（文字同士が重ならない程度）
+
+      // Step1: scaleX=1.0 で最大 fontSize
+      let lo = 0.5, hi = 50, bestFs = lo;
+      for (let it = 0; it < 35; it++) {
+        const mid = (lo + hi) / 2;
+        if (tryGridLayout(mid, 1.0, GAP)) { bestFs = mid; lo = mid; } else hi = mid;
+      }
+
+      // Step2: fontSize固定で最大 scaleX
+      const maxSX = cols === 1 ? 3.5 : 2.5;
+      let bestSX = 1.0;
+      {
+        let sLo = 1.0, sHi = maxSX;
+        for (let it = 0; it < 30; it++) {
+          const mid = (sLo + sHi) / 2;
+          if (tryGridLayout(bestFs, mid, GAP)) { bestSX = mid; sLo = mid; } else sHi = mid;
+        }
+      }
+
+      // Step3: scaleX固定で fontSize 再探索
+      {
+        let lo2 = bestFs * 0.5, hi2 = 50;
+        for (let it = 0; it < 30; it++) {
+          const mid = (lo2 + hi2) / 2;
+          if (tryGridLayout(mid, bestSX, GAP)) { bestFs = mid; lo2 = mid; } else hi2 = mid;
+        }
+      }
+
+      // Step4: fontSize と scaleX を交互に最適化（数ラウンド）
+      for (let round = 0; round < 3; round++) {
+        {
+          let sLo = 1.0, sHi = maxSX;
+          for (let it = 0; it < 20; it++) {
+            const mid = (sLo + sHi) / 2;
+            if (tryGridLayout(bestFs, mid, GAP)) { bestSX = mid; sLo = mid; } else sHi = mid;
+          }
+        }
+        {
+          let lo2 = bestFs * 0.8, hi2 = 50;
+          for (let it = 0; it < 20; it++) {
+            const mid = (lo2 + hi2) / 2;
+            if (tryGridLayout(mid, bestSX, GAP)) { bestFs = mid; lo2 = mid; } else hi2 = mid;
+          }
+        }
+      }
+
+      const result = tryGridLayout(bestFs, bestSX, GAP);
+      if (!result) return;
+
+      // ── SVG出力 ──
+      function commandsToD(cmds) {
+        const f = v => v.toFixed(3);
+        return cmds.map(c => {
+          if (c.type==='M') return `M${f(c.x)} ${f(c.y)}`;
+          if (c.type==='L') return `L${f(c.x)} ${f(c.y)}`;
+          if (c.type==='C') return `C${f(c.x1)} ${f(c.y1)} ${f(c.x2)} ${f(c.y2)} ${f(c.x)} ${f(c.y)}`;
+          if (c.type==='Q') return `Q${f(c.x1)} ${f(c.y1)} ${f(c.x)} ${f(c.y)}`;
+          if (c.type==='Z') return 'Z';
+          return '';
+        }).join('');
+      }
+      let allD = '';
+      result.paths.forEach(p => { allD += commandsToD(p.commands); });
+
+      const svgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      svgPath.setAttribute("id", "tateNamePath");
+      svgPath.setAttribute("d", allD);
+      svgPath.setAttribute("fill", color);
+      svgPath.setAttribute("stroke", color);
+      svgPath.setAttribute("stroke-width", strokeWidth);
+      svgElem.appendChild(svgPath);
+    }
+
     // ── 印鑑更新 ─────────────────────────────────────────────────
     function updateStamp() {
       if (!loadedFont) return;
@@ -413,12 +672,12 @@
       if (svgT) {
         svgT.querySelector("circle").setAttribute("stroke", color);
         svgT.querySelector("circle").setAttribute("stroke-width", randomizeStroke(1.2));
-        const op = document.getElementById("tateNamePath"); if(op) op.remove();
+        // 既存パスを削除
+        svgT.querySelectorAll("[id^='tateName']").forEach(el => {
+          if (el.tagName === "path") el.remove();
+        });
         try {
-          const hw = R / Math.SQRT2 * 0.97;
-          placeFitText(loadedFont, name,
-            {xMin:30-hw, xMax:30+hw, yMin:30-R*0.97, yMax:30+R*0.97},
-            "tateName", svgT, color, randomizeStroke(0.07), true);
+          placeTateStamp(loadedFont, name, svgT, color, randomizeStroke(0.07));
         } catch(e) { console.error("縦書きエラー:", e); }
       }
     }
