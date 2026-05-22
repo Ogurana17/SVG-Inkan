@@ -704,7 +704,16 @@
       updateStamp();
     });
 
-    function onUpdateButton() { updateStamp(); }
+    function onUpdateButton() {
+      const dept = document.getElementById("deptInput").value;
+      const name = document.getElementById("nameInput").value;
+      const params = new URLSearchParams();
+      if (dept) params.set("dept", dept);
+      if (name) params.set("name", name);
+      const newUrl = location.pathname + (params.toString() ? "?" + params.toString() : "");
+      history.replaceState(null, "", newUrl);
+      updateStamp();
+    }
 
     // ── SVG/PNGダウンロード ───────────────────────────────────────
     function downloadSVG(svgId, typeName) {
