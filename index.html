@@ -132,9 +132,9 @@
       <div class="svg-wrapper">
         <div class="svg-container">
           <svg id="InkanSanmon" width="300" height="300" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="30" cy="30" r="28" fill="none" stroke="#EF454A" stroke-width="1.2" />
-            <line x1="3" y1="22" x2="57" y2="22" stroke="#EF454A" stroke-width="0.6" />
-            <line x1="3" y1="38" x2="57" y2="38" stroke="#EF454A" stroke-width="0.6" />
+            <circle cx="30" cy="30" r="28" fill="none" stroke="#EF454A" stroke-width="2.1" />
+            <line x1="3" y1="22" x2="57" y2="22" stroke="#EF454A" stroke-width="1.05" />
+            <line x1="3" y1="38" x2="57" y2="38" stroke="#EF454A" stroke-width="1.05" />
             <text id="deptText" x="30" y="18" font-size="5.6" fill="#EF454A" text-anchor="middle"
               font-family="Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
             <text id="dateText" x="30" y="32" font-size="7.2" fill="#EF454A" text-anchor="middle"
@@ -153,7 +153,7 @@
       <div class="svg-wrapper">
         <div class="svg-container">
           <svg id="InkanTateName" width="300" height="300" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="30" cy="30" r="28" fill="none" stroke="#EF454A" stroke-width="1.2" />
+            <circle cx="30" cy="30" r="28" fill="none" stroke="#EF454A" stroke-width="2.1" />
             <text id="tateNameText" x="30" y="30" font-size="12" fill="#EF454A" text-anchor="middle"
               font-family="Yuji Syuku, Noto Serif JP, Hiragino Mincho ProN, Yu Mincho, serif" font-weight="700"></text>
           </svg>
@@ -646,8 +646,8 @@
       const dept  = document.getElementById("deptInput").value;
       const name  = document.getElementById("nameInput").value;
       const color = randomizeColor("#EF454A");
-      const swOuter = randomizeStroke(1.2);
-      const swLine  = randomizeStroke(0.6);
+      const swOuter = randomizeStroke(2.1);
+      const swLine  = randomizeStroke(1.05);
       const swText  = randomizeStroke(0.05);
 
       // ── 三文判 ──
@@ -675,7 +675,7 @@
       const svgT = document.getElementById("InkanTateName");
       if (svgT) {
         svgT.querySelector("circle").setAttribute("stroke", color);
-        svgT.querySelector("circle").setAttribute("stroke-width", randomizeStroke(1.2));
+        svgT.querySelector("circle").setAttribute("stroke-width", randomizeStroke(2.1));
         // 既存パスを削除
         svgT.querySelectorAll("[id^='tateName']").forEach(el => {
           if (el.tagName === "path") el.remove();
