@@ -3,31 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>印鑑画像ジェネレーター｜SVG・PNG・EMFで三文判・認印を作成</title>
+  <title>SVG Inkan Generator</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="ブラウザ上で三文判・認印の印鑑画像を即座に作成できる無料ツール。部署名・氏名を入力するだけでSVG・PNG・EMF形式でダウンロード可能。Excel・Wordへの貼り付けに対応。">
-  <meta name="keywords" content="印鑑,電子印鑑,ハンコ,三文判,認印,SVG,PNG,EMF,ジェネレーター,無料,作成">
-  <link rel="canonical" href="https://ogurana17.github.io/SVG-Inkan/">
-  <!-- OGP -->
-  <meta property="og:title" content="印鑑画像ジェネレーター｜SVG・PNG・EMFで三文判・認印を作成">
-  <meta property="og:description" content="ブラウザ上で三文判・認印の印鑑画像を即座に作成。部署名・氏名を入力するだけでSVG・PNG・EMF形式でダウンロード可能。">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://ogurana17.github.io/SVG-Inkan/">
-  <meta property="og:locale" content="ja_JP">
-  <!-- 構造化データ -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "印鑑画像ジェネレーター",
-    "description": "ブラウザ上で三文判・認印の印鑑画像を即座に作成できる無料ツール。SVG・PNG・EMF形式でダウンロード可能。",
-    "url": "https://ogurana17.github.io/SVG-Inkan/",
-    "applicationCategory": "UtilitiesApplication",
-    "operatingSystem": "All",
-    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
-    "author": { "@type": "Person", "name": "ogurana17" }
-  }
-  </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
@@ -127,8 +104,7 @@
 
 <body>
   <div class="container py-4">
-    <h1 class="mb-2" style="font-size:1.5rem;">印鑑画像ジェネレーター</h1>
-    <p class="text-muted mb-4" style="font-size:0.85rem;">部署名と氏名を入力して、三文判・認印の印鑑画像をSVG・PNG・EMF形式で作成できます。</p>
+    <h2 class="mb-4">SVG Inkan Generator</h2>
     <div class="card shadow-sm mx-auto">
       <div class="card-body">
         <form onsubmit="event.preventDefault(); onUpdateButton();">
@@ -146,6 +122,23 @@
           </div>
           <div class="d-flex justify-content-center">
             <button type="button" class="btn btn-danger w-50" onclick="onUpdateButton()">印鑑更新</button>
+          </div>
+          <hr style="margin:1rem 0 0.75rem; border-color:#dee2e6;">
+          <div class="text-start">
+            <label class="inkan-label form-label mb-1" style="font-size:0.85rem;">ダウンロードサイズ</label>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <input type="number" id="sizeValue" class="form-control form-control-sm" value="30" min="1" step="1" style="width:5.5rem;">
+              <select id="sizeUnit" class="form-select form-select-sm" style="width:5rem;" onchange="onUnitChange()">
+                <option value="mm" selected>mm</option>
+                <option value="px">px</option>
+              </select>
+              <span id="dpiGroup" class="d-flex align-items-center gap-1">
+                <input type="number" id="dpiValue" class="form-control form-control-sm" value="350" min="1" step="1" style="width:5rem;">
+                <span class="text-muted" style="font-size:0.8rem; white-space:nowrap;">dpi</span>
+              </span>
+              <span id="sizePreview" class="text-muted" style="font-size:0.75rem; white-space:nowrap;"></span>
+            </div>
+            <div id="dpiHint" class="text-muted mt-1" style="font-size:0.7rem;">例）Excel: 96dpi ／ 印刷: 300〜350dpi</div>
           </div>
         </form>
       </div>
@@ -171,6 +164,7 @@
           <button type="button" class="btn btn-outline-secondary" onclick="downloadSVG('InkanSanmon', '三文判')">SVG</button>
           <button type="button" class="btn btn-outline-secondary" onclick="downloadPNG('InkanSanmon', '三文判')">PNG</button>
           <button type="button" class="btn btn-outline-secondary" onclick="downloadEMF('InkanSanmon', '三文判')">EMF</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="downloadPDF('InkanSanmon', '三文判')">PDF</button>
         </div>
       </div>
 
@@ -186,26 +180,17 @@
           <button type="button" class="btn btn-outline-secondary" onclick="downloadSVG('InkanTateName', '縦文字')">SVG</button>
           <button type="button" class="btn btn-outline-secondary" onclick="downloadPNG('InkanTateName', '縦文字')">PNG</button>
           <button type="button" class="btn btn-outline-secondary" onclick="downloadEMF('InkanTateName', '縦文字')">EMF</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="downloadPDF('InkanTateName', '縦文字')">PDF</button>
         </div>
       </div>
     </div>
   </div>
 
-  <footer style="text-align:center; padding:2rem 1rem 1rem; color:#adb5bd; font-size:0.75rem; letter-spacing:0.05em;">
-    <nav style="margin-bottom:0.75rem; font-size:0.7rem; color:#ced4da;">
-      <span>三文判（日付印）</span> ・ <span>認印（縦書き）</span> ・
-      <span>SVG出力</span> ・ <span>PNG出力</span> ・ <span>EMF出力（ベクター）</span>
-    </nav>
-    <p style="margin:0;">© 2026 ogurana17</p>
+  <footer style="text-align:center; padding:2rem 0 1rem; color:#adb5bd; font-size:0.75rem; letter-spacing:0.05em;">
+    © 2026 ogurana17
   </footer>
 
   <script src="opentype.js/opentype.min.js"></script>
-  <noscript>
-    <div style="padding:2rem; text-align:center;">
-      <p>このツールはJavaScriptを使用します。ブラウザのJavaScriptを有効にしてください。</p>
-      <p>印鑑画像ジェネレーターは、部署名・氏名を入力するだけで三文判（日付入り角印）や認印（縦書き丸印）の印鑑画像をブラウザ上で即座に生成し、SVG・PNG・EMF形式でダウンロードできる無料のWebツールです。</p>
-    </div>
-  </noscript>
 
   <script>
     let loadedFont = null;
@@ -738,6 +723,56 @@
       updateStamp();
     });
 
+    // ── サイズ指定ヘルパー ──────────────────────────────────────────
+    function getDownloadSize() {
+      const val  = parseFloat(document.getElementById("sizeValue").value) || 30;
+      const unit = document.getElementById("sizeUnit").value;
+      const dpi  = parseFloat(document.getElementById("dpiValue").value) || 350;
+      if (unit === "mm") {
+        const px = Math.round(val / 25.4 * dpi);
+        return { px, mm: val, dpi, unit };
+      } else {
+        return { px: Math.round(val), mm: null, dpi, unit };
+      }
+    }
+
+    function updateSizePreview() {
+      const s = getDownloadSize();
+      const el = document.getElementById("sizePreview");
+      if (s.unit === "mm") {
+        el.textContent = `→ ${s.px} × ${s.px} px`;
+      } else {
+        const mm = (s.px * 25.4 / (parseFloat(document.getElementById("dpiValue").value) || 96)).toFixed(1);
+        el.textContent = `→ ${mm} × ${mm} mm @${document.getElementById("dpiValue").value}dpi`;
+      }
+    }
+
+    function onUnitChange() {
+      const unit = document.getElementById("sizeUnit").value;
+      const dpiGroup = document.getElementById("dpiGroup");
+      const dpiHint = document.getElementById("dpiHint");
+      const sizeInput = document.getElementById("sizeValue");
+      if (unit === "mm") {
+        dpiGroup.style.display = "";
+        dpiHint.style.display = "";
+        sizeInput.value = "30";
+      } else {
+        dpiGroup.style.display = "none";
+        dpiHint.style.display = "none";
+        sizeInput.value = "600";
+      }
+      updateSizePreview();
+    }
+
+    // サイズ変更時にプレビュー更新
+    document.addEventListener("DOMContentLoaded", () => {
+      ["sizeValue","dpiValue"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("input", updateSizePreview);
+      });
+      setTimeout(updateSizePreview, 100);
+    });
+
     function onUpdateButton() {
       const dept = document.getElementById("deptInput").value;
       const name = document.getElementById("nameInput").value;
@@ -754,7 +789,17 @@
       const name = document.getElementById("nameInput").value || "印鑑";
       const el = document.getElementById(svgId);
       if (!el) { alert("SVG要素が見つかりません。"); return; }
-      const blob = new Blob([new XMLSerializer().serializeToString(el)], { type:"image/svg+xml;charset=utf-8" });
+      const s = getDownloadSize();
+      // SVGをクローンしてwidth/heightを指定サイズに変更
+      const clone = el.cloneNode(true);
+      if (s.unit === "mm") {
+        clone.setAttribute("width",  s.mm + "mm");
+        clone.setAttribute("height", s.mm + "mm");
+      } else {
+        clone.setAttribute("width",  s.px);
+        clone.setAttribute("height", s.px);
+      }
+      const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type:"image/svg+xml;charset=utf-8" });
       const a = Object.assign(document.createElement("a"), { href:URL.createObjectURL(blob), download:`${name}_${typeName}.svg` });
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
@@ -763,21 +808,20 @@
       const name = document.getElementById("nameInput").value || "印鑑";
       const el = document.getElementById(svgId);
       if (!el) { alert("SVG要素が見つかりません。"); return; }
+      const s = getDownloadSize();
+      const W = s.px, H = s.px;
+      // SVGにwidth/heightをpxで明示してラスタライズ
       let svgStr = new XMLSerializer().serializeToString(el);
       if (!svgStr.includes("xmlns=")) svgStr = svgStr.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
-      const scale = 10, W = 60*scale, H = 60*scale;
+      svgStr = svgStr.replace(/width="[^"]*"/, `width="${W}"`).replace(/height="[^"]*"/, `height="${H}"`);
       const canvas = Object.assign(document.createElement("canvas"), {width:W, height:H});
       const ctx = canvas.getContext("2d");
+      const img = new Image();
       await new Promise((res,rej) => {
-        const img = new Image();
         img.onload = res; img.onerror = rej;
         img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgStr)));
       });
-      ctx.drawImage(canvas.width ? canvas : canvas, 0, 0);
-      const img2 = new Image();
-      img2.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgStr)));
-      await new Promise(res => { img2.onload = res; });
-      ctx.drawImage(img2, 0, 0, W, H);
+      ctx.drawImage(img, 0, 0, W, H);
       const a = Object.assign(document.createElement("a"), { href:canvas.toDataURL("image/png"), download:`${name}_${typeName}.png` });
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
@@ -792,9 +836,14 @@
       const svgEl   = document.getElementById(svgId);
       if (!svgEl) { alert("SVG要素が見つかりません。"); return; }
 
-      const VB=60, SC=10, W=600, H=600;
+      const s = getDownloadSize();
+      const VB=60, W=s.px, H=s.px;
+      const SC = W / VB;
       const toP = v => Math.round(v * SC);
-      const FRAME = Math.round(W * 25.4 * 100 / 96); // 15875
+      // rclFrame: mm指定時はそのまま1/100mm, px指定時は96dpi換算
+      const FRAME = s.unit === "mm"
+        ? Math.round(s.mm * 100)
+        : Math.round(W * 25.4 * 100 / 96);
 
       function parseColor(s) {
         if (!s || s==="none") return null;
@@ -1045,10 +1094,11 @@
       H32(grand);H32(nRec);
       H16(nextH);H16(0);
       H32(0);H32(0);H32(0);    // nDesc=0, offDesc=0 (no description), nPalEntries=0
-      H32(W);H32(H);
-      H32(Math.round(W*25.4/96));H32(Math.round(H*25.4/96));
-      H32(0);H32(0);H32(0);
-      H32(Math.round(W*25400/96));H32(Math.round(H*25400/96));
+      H32(W);H32(H);                                                        // szlDevice
+      const szlMM = s.unit==="mm" ? Math.round(s.mm) : Math.round(W*25.4/96);
+      H32(szlMM);H32(szlMM);                                                  // szlMillimeters
+      H32(0);H32(0);H32(0);                                                   // cbPixelFormat, offPixelFormat, bOpenGL
+      H32(szlMM*1000);H32(szlMM*1000);                                        // szlMicrometers
 
       const out=new Uint8Array(grand); out.set(hdr,0); let off=108;
       for(const r of recs){out.set(r,off);off+=r.byteLength;}
@@ -1057,6 +1107,203 @@
       const url=URL.createObjectURL(blob);
       const a=Object.assign(document.createElement("a"),{href:url,download:`${nameVal}_${typeName}.emf`});
       document.body.appendChild(a);a.click();document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ── PDF出力（ベクター版）───────────────────────────────────────
+    // SVGの各要素をPDFパスオペレータに変換してベクターPDFを生成する。
+    // 外部ライブラリ不要、バイナリを直接構築。
+
+    function downloadPDF(svgId, typeName) {
+      const nameVal = document.getElementById("nameInput").value || "印鑑";
+      const svgEl = document.getElementById(svgId);
+      if (!svgEl) { alert("SVG要素が見つかりません。"); return; }
+
+      const s = getDownloadSize();
+      const VB = 60;
+      // ページサイズ (pt, 1pt = 1/72 inch)
+      const pagePt = s.unit === "mm"
+        ? s.mm * 72 / 25.4
+        : s.px * 72 / 96;
+      const SC = pagePt / VB;
+
+      // SVG座標 → PDF座標 (y軸反転: pdf_y = pagePt - svg_y * SC)
+      const tx = v => (v * SC).toFixed(3);
+      const ty = v => (pagePt - v * SC).toFixed(3);
+      const f3 = v => v.toFixed(3);
+
+      function parseColor(str) {
+        if (!str || str === "none") return null;
+        str = str.trim();
+        const m = str.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+        if (m) return [+m[1]/255, +m[2]/255, +m[3]/255];
+        if (str[0] === "#") {
+          const h = str.slice(1);
+          if (h.length===6) return [parseInt(h.slice(0,2),16)/255, parseInt(h.slice(2,4),16)/255, parseInt(h.slice(4,6),16)/255];
+          if (h.length===3) return [parseInt(h[0]+h[0],16)/255, parseInt(h[1]+h[1],16)/255, parseInt(h[2]+h[2],16)/255];
+        }
+        return [0.937, 0.271, 0.290]; // fallback #EF454A
+      }
+
+      // ── SVG要素 → PDFパスストリーム ──
+      const lines = []; // PDFコンテンツストリーム行
+
+      // 円 → ベジェ4弧
+      function emitCircle(cx, cy, r) {
+        const k = 0.5523;
+        const P = [
+          [cx+r, cy],
+          [cx+r, cy+r*k], [cx+r*k, cy+r], [cx, cy+r],
+          [cx-r*k, cy+r], [cx-r, cy+r*k], [cx-r, cy],
+          [cx-r, cy-r*k], [cx-r*k, cy-r], [cx, cy-r],
+          [cx+r*k, cy-r], [cx+r, cy-r*k], [cx+r, cy],
+        ];
+        lines.push(`${tx(P[0][0])} ${ty(P[0][1])} m`);
+        for (let s=0; s<4; s++) {
+          const p1=P[1+s*3], p2=P[2+s*3], p3=P[3+s*3];
+          lines.push(`${tx(p1[0])} ${ty(p1[1])} ${tx(p2[0])} ${ty(p2[1])} ${tx(p3[0])} ${ty(p3[1])} c`);
+        }
+        lines.push("h");
+      }
+
+      // 直線
+      function emitLine(x1,y1,x2,y2) {
+        lines.push(`${tx(x1)} ${ty(y1)} m`);
+        lines.push(`${tx(x2)} ${ty(y2)} l`);
+      }
+
+      // SVGパスd文字列 → PDFパスオペレータ
+      // Q(二次ベジェ)→C(三次ベジェ)変換込み
+      function emitDString(d) {
+        const toks = d.match(/[MLCQZmlcqz]|NaN|[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?/g) || [];
+        let i=0, cx=0, cy=0, inFigure=false;
+        while (i < toks.length) {
+          const tok = toks[i];
+          if (!/^[MLCQZmlcqz]$/.test(tok)) { i++; continue; }
+          const cmd = tok; i++;
+          const num = (n) => {
+            const vs = [];
+            for (let k=0; k<n; k++) { const v=toks[i++]; vs.push(v==="NaN"?NaN:parseFloat(v)); }
+            return n===1 ? vs[0] : vs;
+          };
+
+          if (cmd==="M"||cmd==="m") {
+            const [x,y] = num(2);
+            if (!isFinite(x)||!isFinite(y)) continue;
+            if (inFigure) lines.push("h"); // 前のサブパスを閉じる
+            cx=cmd==="M"?x:cx+x; cy=cmd==="M"?y:cy+y;
+            lines.push(`${tx(cx)} ${ty(cy)} m`);
+            inFigure = true;
+          } else if (cmd==="L"||cmd==="l") {
+            const [x,y] = num(2);
+            if (!isFinite(x)||!isFinite(y)) continue;
+            cx=cmd==="L"?x:cx+x; cy=cmd==="L"?y:cy+y;
+            lines.push(`${tx(cx)} ${ty(cy)} l`);
+          } else if (cmd==="C"||cmd==="c") {
+            const [x1,y1,x2,y2,x,y] = num(6);
+            if ([x1,y1,x2,y2,x,y].some(v=>!isFinite(v))) continue;
+            const rel=cmd==="c";
+            const ax1=rel?cx+x1:x1, ay1=rel?cy+y1:y1;
+            const ax2=rel?cx+x2:x2, ay2=rel?cy+y2:y2;
+            const ax=rel?cx+x:x, ay=rel?cy+y:y;
+            lines.push(`${tx(ax1)} ${ty(ay1)} ${tx(ax2)} ${ty(ay2)} ${tx(ax)} ${ty(ay)} c`);
+            cx=ax; cy=ay;
+          } else if (cmd==="Q"||cmd==="q") {
+            const [qx1,qy1,x,y] = num(4);
+            if ([qx1,qy1,x,y].some(v=>!isFinite(v))) continue;
+            const rel=cmd==="q";
+            const ax1=rel?cx+qx1:qx1, ay1=rel?cy+qy1:qy1;
+            const ax=rel?cx+x:x, ay=rel?cy+y:y;
+            // Q→C変換
+            const c1x=cx+2/3*(ax1-cx), c1y=cy+2/3*(ay1-cy);
+            const c2x=ax+2/3*(ax1-ax), c2y=ay+2/3*(ay1-ay);
+            lines.push(`${tx(c1x)} ${ty(c1y)} ${tx(c2x)} ${ty(c2y)} ${tx(ax)} ${ty(ay)} c`);
+            cx=ax; cy=ay;
+          } else if (cmd==="Z"||cmd==="z") {
+            lines.push("h");
+            inFigure = false;
+          }
+        }
+        if (inFigure) lines.push("h");
+      }
+
+      // 各SVG要素を処理
+      function processEl(el) {
+        const tag = el.tagName.toLowerCase();
+        const fillA = el.getAttribute("fill") || "none";
+        const strokeA = el.getAttribute("stroke") || "none";
+        const sw = parseFloat(el.getAttribute("stroke-width") || "0");
+        const fc = fillA !== "none" ? parseColor(fillA) : null;
+        const sc = strokeA !== "none" ? parseColor(strokeA) : null;
+
+        // グラフィックステート設定
+        lines.push("q"); // save state
+        if (sc) lines.push(`${f3(sc[0])} ${f3(sc[1])} ${f3(sc[2])} RG`);
+        if (fc) lines.push(`${f3(fc[0])} ${f3(fc[1])} ${f3(fc[2])} rg`);
+        if (sw > 0) lines.push(`${f3(sw * SC)} w`);
+        lines.push("1 j 1 J"); // round line join & cap
+
+        if (tag === "circle") {
+          emitCircle(parseFloat(el.getAttribute("cx")||0), parseFloat(el.getAttribute("cy")||0), parseFloat(el.getAttribute("r")||0));
+        } else if (tag === "line") {
+          emitLine(parseFloat(el.getAttribute("x1")||0), parseFloat(el.getAttribute("y1")||0),
+                   parseFloat(el.getAttribute("x2")||0), parseFloat(el.getAttribute("y2")||0));
+        } else if (tag === "path") {
+          const d = el.getAttribute("d");
+          if (d) emitDString(d);
+        } else { lines.push("Q"); return; }
+
+        // 描画オペレータ
+        if (fc && sc) lines.push("B");     // fill & stroke
+        else if (sc) lines.push("S");      // stroke
+        else if (fc) lines.push("f");      // fill (non-zero winding)
+        lines.push("Q"); // restore state
+      }
+
+      for (const ch of svgEl.children) processEl(ch);
+
+      // ── PDF構築 ──
+      const stream = lines.join("\n");
+      const streamBytes = new TextEncoder().encode(stream);
+
+      // PDFオブジェクト構築
+      const objs = [];
+      const objOffsets = [];
+      let pdfStr = "%PDF-1.4\n";
+
+      function addObj(content) {
+        const n = objs.length + 1;
+        objOffsets.push(pdfStr.length);
+        const s = `${n} 0 obj\n${content}\nendobj\n`;
+        pdfStr += s;
+        objs.push(n);
+        return n;
+      }
+
+      // 1: Catalog
+      addObj("<< /Type /Catalog /Pages 2 0 R >>");
+      // 2: Pages
+      addObj(`<< /Type /Pages /Kids [3 0 R] /Count 1 >>`);
+      // 3: Page
+      addObj(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f3(pagePt)} ${f3(pagePt)}] /Contents 4 0 R /Resources << >> >>`);
+      // 4: Content stream
+      addObj(`<< /Length ${streamBytes.length} >>\nstream\n${stream}\nendstream`);
+
+      // Xref table
+      const xrefOffset = pdfStr.length;
+      pdfStr += `xref\n0 ${objs.length + 1}\n`;
+      pdfStr += "0000000000 65535 f \n";
+      for (const off of objOffsets) {
+        pdfStr += String(off).padStart(10, "0") + " 00000 n \n";
+      }
+
+      // Trailer
+      pdfStr += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+
+      const blob = new Blob([pdfStr], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement("a"), { href: url, download: `${nameVal}_${typeName}.pdf` });
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
   </script>
