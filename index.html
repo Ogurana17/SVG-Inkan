@@ -7,6 +7,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
+    @font-face {
+      font-family: "Yuji Syuku";
+      src: url("fonts/YujiSyuku-Regular.ttf") format("truetype");
+      font-display: swap;
+    }
     body {
       font-family: "Yuji Syuku", "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
       text-align: center;
@@ -127,18 +132,31 @@
           <div class="text-start">
             <label class="inkan-label form-label mb-1" style="font-size:0.85rem;">ダウンロードサイズ</label>
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <input type="number" id="sizeValue" class="form-control form-control-sm" value="30" min="1" step="1" style="width:5.5rem;">
+              <input type="number" id="sizeValue" class="form-control form-control-sm" value="15" min="1" step="1" style="width:5.5rem;">
               <select id="sizeUnit" class="form-select form-select-sm" style="width:5rem;" onchange="onUnitChange()">
                 <option value="mm" selected>mm</option>
                 <option value="px">px</option>
               </select>
               <span id="dpiGroup" class="d-flex align-items-center gap-1">
-                <input type="number" id="dpiValue" class="form-control form-control-sm" value="350" min="1" step="1" style="width:5rem;">
+                <input type="number" id="dpiValue" class="form-control form-control-sm" value="72" min="1" step="1" style="width:5rem;">
                 <span class="text-muted" style="font-size:0.8rem; white-space:nowrap;">dpi</span>
               </span>
               <span id="sizePreview" class="text-muted" style="font-size:0.75rem; white-space:nowrap;"></span>
             </div>
             <div id="dpiHint" class="text-muted mt-1" style="font-size:0.7rem;">例）Excel: 96dpi ／ 印刷: 300〜350dpi</div>
+          </div>
+          <div class="text-start mt-2">
+            <label class="inkan-label form-label mb-1" style="font-size:0.85rem;">フォントレンダリング</label>
+            <div class="d-flex align-items-center gap-2">
+              <select id="emfRenderMode" class="form-select form-select-sm" style="width:auto;" onchange="onUpdateButton()">
+                <option value="outline" selected>アウトライン（フォント不要）</option>
+                <option value="font">フォント参照（要インストール）</option>
+              </select>
+            </div>
+            <div class="text-muted mt-1" style="font-size:0.7rem;">
+              フォント参照モードは高品質ですが、表示側に<a href="https://fonts.google.com/specimen/Yuji+Syuku" target="_blank" rel="noopener">Yuji Syuku</a>のインストールが必要です。<br>
+              Google Fonts → Download family → ZIPを展開 → .ttfをダブルクリックでインストール
+            </div>
           </div>
         </form>
       </div>
@@ -668,6 +686,7 @@
       const swOuter = randomizeStroke(2.1);
       const swLine  = randomizeStroke(1.05);
       const swText  = randomizeStroke(0.05);
+      const mode = document.getElementById("emfRenderMode").value; // "outline" or "font"
 
       // ── 三文判 ──
       const svgS = document.getElementById("InkanSanmon");
@@ -676,32 +695,80 @@
       const lines = svgS.querySelectorAll("line");
       if (lines[0]) { lines[0].setAttribute("stroke", color); lines[0].setAttribute("stroke-width", swLine); }
       if (lines[1]) { lines[1].setAttribute("stroke", color); lines[1].setAttribute("stroke-width", swLine); }
-      ["dept","date","name"].forEach(id => { const p = document.getElementById(id+"Path"); if(p) p.remove(); });
+      // 旧テキスト要素を削除（path/text両方）
+      ["dept","date","name"].forEach(id => {
+        const p = document.getElementById(id+"Path"); if(p) p.remove();
+        const t = document.getElementById(id+"Text"); if(t) t.remove();
+      });
 
       const R = 28 - 0.8;
-      // 各帯の弦幅（円の幾何計算）
       function chordHW(bandCY) {
         return Math.sqrt(Math.max(0, R*R - (bandCY - 30)**2)) * 0.97;
       }
 
-      try {
-        placeFitText(loadedFont, dept, {xMin:30-chordHW(12.5), xMax:30+chordHW(12.5), yMin:3.5,  yMax:21.5}, "dept",  svgS, color, swText, false);
-        placeFitText(loadedFont, date, {xMin:30-chordHW(30),   xMax:30+chordHW(30),   yMin:22.5, yMax:37.5}, "date",  svgS, color, swText, false);
-        placeFitText(loadedFont, name, {xMin:30-chordHW(47.5), xMax:30+chordHW(47.5), yMin:38.5, yMax:56.5}, "name",  svgS, color, swText, false);
-      } catch(e) { console.error("三文判エラー:", e); }
+      if (mode === "outline") {
+        try {
+          placeFitText(loadedFont, dept, {xMin:30-chordHW(12.5), xMax:30+chordHW(12.5), yMin:3.5,  yMax:21.5}, "dept",  svgS, color, swText, false);
+          placeFitText(loadedFont, date, {xMin:30-chordHW(30),   xMax:30+chordHW(30),   yMin:22.5, yMax:37.5}, "date",  svgS, color, swText, false);
+          placeFitText(loadedFont, name, {xMin:30-chordHW(47.5), xMax:30+chordHW(47.5), yMin:38.5, yMax:56.5}, "name",  svgS, color, swText, false);
+        } catch(e) { console.error("三文判エラー:", e); }
+      } else {
+        // フォント参照モード: SVG <text> で描画
+        const zones = [
+          { id:"dept", text:dept, cy:12.5, yMin:3.5,  yMax:21.5, hR:0.5, wR:1.2 },
+          { id:"date", text:date, cy:30,   yMin:22.5, yMax:37.5, hR:0.85, wR:1.8 },
+          { id:"name", text:name, cy:47.5, yMin:38.5, yMax:56.5, hR:0.6, wR:1.4 },
+        ];
+        zones.forEach(z => {
+          if (!z.text) return;
+          const zH = z.yMax - z.yMin;
+          const zW = chordHW(z.cy) * 2;
+          const fs = Math.min(zH * z.hR, zW / z.text.length * z.wR);
+          const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          t.setAttribute("id", z.id + "Text");
+          t.setAttribute("x", "30");
+          t.setAttribute("y", String(z.cy + fs * 0.35));
+          t.setAttribute("text-anchor", "middle");
+          t.setAttribute("font-family", "Yuji Syuku, serif");
+          t.setAttribute("font-size", String(fs));
+          t.setAttribute("fill", color);
+          t.textContent = z.text;
+          svgS.appendChild(t);
+        });
+      }
 
       // ── 縦書き印 ──
       const svgT = document.getElementById("InkanTateName");
       if (svgT) {
         svgT.querySelector("circle").setAttribute("stroke", color);
         svgT.querySelector("circle").setAttribute("stroke-width", randomizeStroke(2.1));
-        // 既存パスを削除
+        // 旧テキスト要素を削除
         svgT.querySelectorAll("[id^='tateName']").forEach(el => {
-          if (el.tagName === "path") el.remove();
+          if (el.tagName === "path" || el.tagName === "text") el.remove();
         });
-        try {
-          placeTateStamp(loadedFont, name, svgT, color, randomizeStroke(0.07));
-        } catch(e) { console.error("縦書きエラー:", e); }
+        if (mode === "outline") {
+          try {
+            placeTateStamp(loadedFont, name, svgT, color, randomizeStroke(0.07));
+          } catch(e) { console.error("縦書きエラー:", e); }
+        } else {
+          // フォント参照: 縦書き <text>
+          if (name) {
+            const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            t.setAttribute("id", "tateNameText");
+            t.setAttribute("x", "30");
+            t.setAttribute("y", "30");
+            t.setAttribute("text-anchor", "middle");
+            t.setAttribute("dominant-baseline", "central");
+            t.setAttribute("font-family", "Yuji Syuku, serif");
+            t.setAttribute("fill", color);
+            t.setAttribute("writing-mode", "tb");
+            t.setAttribute("glyph-orientation-vertical", "0");
+            const fs = Math.min(R * 1.2 / Math.max(name.length, 1), 16);
+            t.setAttribute("font-size", String(fs));
+            t.textContent = name;
+            svgT.appendChild(t);
+          }
+        }
       }
     }
 
@@ -755,7 +822,7 @@
       if (unit === "mm") {
         dpiGroup.style.display = "";
         dpiHint.style.display = "";
-        sizeInput.value = "30";
+        sizeInput.value = "15";
       } else {
         dpiGroup.style.display = "none";
         dpiHint.style.display = "none";
@@ -768,8 +835,10 @@
     document.addEventListener("DOMContentLoaded", () => {
       ["sizeValue","dpiValue"].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.addEventListener("input", updateSizePreview);
+        if (el) el.addEventListener("input", () => { updateSizePreview(); });
       });
+      document.getElementById("sizeUnit").addEventListener("change", () => { updateSizePreview(); });
+      document.getElementById("emfRenderMode").addEventListener("change", () => { updateStamp(); });
       setTimeout(updateSizePreview, 100);
     });
 
@@ -837,13 +906,20 @@
       if (!svgEl) { alert("SVG要素が見つかりません。"); return; }
 
       const s = getDownloadSize();
-      const VB=60, W=s.px, H=s.px;
-      const SC = W / VB;
-      const toP = v => Math.round(v * SC);
-      // rclFrame: mm指定時はそのまま1/100mm, px指定時は96dpi換算
+      const VB = 60;
+      // rclFrame (1/100mm)
       const FRAME = s.unit === "mm"
         ? Math.round(s.mm * 100)
-        : Math.round(W * 25.4 * 100 / 96);
+        : Math.round(s.px * 25.4 * 100 / 96);
+      const frameMM = FRAME / 100;
+      // image1.emf互換: 600dpi固定, A4参照デバイス
+      const REF_DEV_X = 4961, REF_DEV_Y = 7016;
+      const REF_MM_X = 210, REF_MM_Y = 297;
+      const DPI = REF_DEV_X / REF_MM_X * 25.4; // ≈600
+      // LOGICAL = 物理サイズ(mm) × DPI / 25.4 → rclBoundsと整合
+      const LOGICAL = Math.round(frameMM / 25.4 * DPI);
+      const SC = LOGICAL / VB;
+      const toP = v => Math.round(v * SC);
 
       function parseColor(s) {
         if (!s || s==="none") return null;
@@ -882,17 +958,34 @@
       const T={
         SETMAPMODE:17, SETBKMODE:18, SETPOLYFILLMODE:19,
         CLOSEFIGURE:21, MOVETOEX:27,
-        SELECTOBJECT:37, CREATEPEN:38, CREATEBRUSHINDIRECT:39, DELETEOBJECT:40,
+        SELECTOBJECT:37, CREATEBRUSHINDIRECT:39, DELETEOBJECT:40,
         LINETO:54,
         BEGINPATH:59, ENDPATH:60,
         FILLPATH:62, STROKEANDFILLPATH:63, STROKEPATH:64,
-        POLYBEZIERTO16:88, EOF:14,
+        POLYBEZIERTO16:88, EXTCREATEPEN:95, EOF:14,
       };
 
       let nextH = 1;
-      const createPen=(c,wpx,style=0)=>{
+      // EXTCREATEPEN (type=95): geometric pen。ペン幅がワールド変換でスケーリングされる。
+      // libemf2svg/Inkscape は CREATEPEN(38) の幅を無視するため、EXTCREATEPEN を使う。
+      const createPen=(c,wpx,nullPen=false)=>{
         const h=nextH++;
-        rec(T.CREATEPEN, B().u32(h).u32(style).s32(wpx).s32(0).u32(c?cref(c):0).get());
+        const recSize = 56; // 8(header) + 48(payload)
+        const penStyle = nullPen ? 0x00010005 : 0x00010000; // PS_GEOMETRIC | (PS_NULL or PS_SOLID)
+        rec(T.EXTCREATEPEN,
+          B().u32(h)                    // ihPen
+             .u32(recSize)              // offBmi (pointing past record = no bitmap)
+             .u32(0)                    // cbBmi
+             .u32(recSize)              // offBits
+             .u32(0)                    // cbBits
+             .u32(penStyle)             // elpPenStyle: PS_GEOMETRIC | PS_SOLID (or PS_NULL)
+             .u32(nullPen ? 0 : wpx)   // elpWidth
+             .u32(0)                    // elpBrushStyle: BS_SOLID
+             .u32(c && !nullPen ? cref(c) : 0) // elpColor
+             .u32(0)                    // elpHatch
+             .u32(0)                    // elpNumEntries
+             .u32(0)                    // padding (elpStyleEntry[0])
+             .get());
         return h;
       };
       const createBrush=(c,nil=false)=>{
@@ -1028,14 +1121,87 @@
         emitPathCommands(cmds);
       }
 
+      const renderMode = document.getElementById("emfRenderMode").value;
+
+      // フォントモード用の追加タイプ
+      const T3 = { EXTCREATEFONTINDIRECTW:82, SETTEXTCOLOR:24, SETTEXTALIGN:22, EXTTEXTOUTW:84 };
+
+      // UTF-16LEエンコード
+      function toUTF16LE(str) {
+        const buf = [];
+        for (let i = 0; i < str.length; i++) {
+          const code = str.charCodeAt(i);
+          buf.push(code & 0xff, (code >> 8) & 0xff);
+        }
+        return buf;
+      }
+
+      // フォント作成 (EXTCREATEFONTINDIRECTW)
+      function createFont(handle, heightHimetric, color) {
+        // LOGFONTW (92 bytes)
+        const faceName = "Yuji Syuku";
+        const faceUTF16 = toUTF16LE(faceName);
+        const faceBytes = new Uint8Array(64); // WCHAR[32]
+        faceBytes.set(faceUTF16);
+        const lf = B()
+          .s32(-Math.abs(heightHimetric))  // lfHeight (negative = character height)
+          .s32(0)                          // lfWidth
+          .s32(0).s32(0)                   // lfEscapement, lfOrientation
+          .s32(400);                       // lfWeight (normal)
+        // 8 bytes of BYTE fields
+        const lfBytes = [...lf.get(),
+          0, 0, 0, 128, // italic=0, underline=0, strikeout=0, charset=128(SHIFTJIS)
+          0, 0, 2, 0,   // outPrec=0, clipPrec=0, quality=2(PROOF), pitchFamily=0
+          ...faceBytes
+        ];
+        const payload = B().u32(handle);
+        const fullPayload = [...payload.get(), ...lfBytes];
+        rec(T3.EXTCREATEFONTINDIRECTW, new Uint8Array(fullPayload));
+
+        // テキスト色・配置
+        rec(T3.SETTEXTCOLOR, B().u32(color ? cref(color) : 0).get());
+        rec(T3.SETTEXTALIGN, B().u32(0 | 24).get()); // TA_LEFT | TA_BASELINE
+        return handle;
+      }
+
+      // テキスト描画 (EXTTEXTOUTW)
+      function emitText(text, x, y) {
+        const strUTF16 = toUTF16LE(text);
+        const nChars = text.length;
+        const strBytes = strUTF16.length;
+        const offString = 76; // 固定オフセット(record header含む)
+        const totalStr = strBytes + ((4 - strBytes % 4) % 4); // 4byte align
+
+        const payload = B()
+          .s32(0).s32(0).s32(LOGICAL).s32(LOGICAL) // Bounds
+          .u32(1)                                    // iGraphicsMode (GM_COMPATIBLE)
+          .u32(0x3F800000).u32(0x3F800000)           // exScale=1.0f, eyScale=1.0f
+          .s32(x).s32(y)                             // ptlReference
+          .u32(nChars)                               // nChars
+          .u32(offString)                            // offString
+          .u32(0)                                    // fOptions
+          .s32(0).s32(0).s32(0).s32(0)               // rcl (no clip)
+          .u32(0);                                   // offDx (no spacing)
+        const payloadArr = [...payload.get(), ...strUTF16];
+        // 4-byte padding
+        while (payloadArr.length % 4 !== 0) payloadArr.push(0);
+        rec(T3.EXTTEXTOUTW, new Uint8Array(payloadArr));
+      }
+
       function processEl(el){
         const tag=el.tagName.toLowerCase();
+        const elId = el.getAttribute("id") || "";
+        const isTextPath = elId.endsWith("Path"); // deptPath, datePath, namePath, tateNamePath
+
+        // フォントモードではテキストパスをスキップ（後で別途描画）
+        if (renderMode === "font" && tag === "path" && isTextPath) return;
+
         const fa=el.getAttribute("fill")||"none";
         const sa=el.getAttribute("stroke")||"none";
         const sw=parseFloat(el.getAttribute("stroke-width")||"0");
         const fc=fa!=="none"?parseColor(fa):null;
         const sc=sa!=="none"?parseColor(sa):null;
-        const penH = sc ? createPen(sc, Math.max(1,toP(sw))) : createPen(null,0,5);
+        const penH = sc ? createPen(sc, Math.max(1,toP(sw))) : createPen(null,0,true);
         const brH  = fc ? createBrush(fc) : createBrush(null,true);
         sel(penH); sel(brH);
         if(tag==="circle"){
@@ -1044,16 +1210,14 @@
           emitLine(parseFloat(el.getAttribute("x1")||0),parseFloat(el.getAttribute("y1")||0),
                    parseFloat(el.getAttribute("x2")||0),parseFloat(el.getAttribute("y2")||0));
         } else if(tag==="path"){
-          // SVGのd文字列ではなく、buildPathが生成したcommands配列を直接使う
-          // ただしSVG要素はDOMに追加済みのopentype pathなのでd属性から取る場合
-          // NaN問題を避けるため: SVGのpath要素のcommands配列は直接アクセスできないので
-          // d属性のパーサを使うが、Q→Cに正しく変換する
           const d=el.getAttribute("d");
           if(d) emitDString(d);
         } else { del(penH); del(brH); return; }
-        if(fc&&sc) rec(T.STROKEANDFILLPATH,[]);
-        else if(sc) rec(T.STROKEPATH,[]);
-        else if(fc) rec(T.FILLPATH,[]);
+        // rclBounds (RECTL) はMS-EMF仕様で必須 (size=24, not 8)
+        const pathBounds = B().s32(0).s32(0).s32(LOGICAL).s32(LOGICAL).get();
+        if(fc&&sc) rec(T.STROKEANDFILLPATH, pathBounds);
+        else if(sc) rec(T.STROKEPATH, pathBounds);
+        else if(fc) rec(T.FILLPATH, pathBounds);
         del(penH); del(brH);
       }
 
@@ -1064,17 +1228,74 @@
       };
 
       // === 初期設定レコード ===
-      // Excel/Inkscape互換のために、MM_TEXTでも明示的にWindow/Viewportを設定する
-      // LibreOfficeで生成されるEMFと同じ順序を踏襲
+      // MM_TEXT: 論理単位=デバイス単位(1:1)
+      // szlDevice/szlMillimetersでDPIを動的設定し、rclBoundsとrclFrameを整合させる
       rec(T.SETMAPMODE,         B().u32(1).get());                       // MM_TEXT
-      rec(T2.SETWINDOWEXTEX,    B().s32(W).s32(H).get());                // Window extent = 600x600
-      rec(T2.SETWINDOWORGEX,    B().s32(0).s32(0).get());                // Window origin = 0,0
-      rec(T2.SETVIEWPORTEXTEX,  B().s32(W).s32(H).get());                // Viewport extent = 600x600
-      rec(T2.SETVIEWPORTORGEX,  B().s32(0).s32(0).get());                // Viewport origin = 0,0
+      rec(T2.SETWINDOWEXTEX,    B().s32(LOGICAL).s32(LOGICAL).get());
+      rec(T2.SETWINDOWORGEX,    B().s32(0).s32(0).get());
+      rec(T2.SETVIEWPORTEXTEX,  B().s32(LOGICAL).s32(LOGICAL).get());    // 1:1マッピング
+      rec(T2.SETVIEWPORTORGEX,  B().s32(0).s32(0).get());
       rec(T.SETBKMODE,          B().u32(1).get());                       // TRANSPARENT
       rec(T.SETPOLYFILLMODE,    B().u32(2).get());                       // WINDING
 
       for(const ch of svgEl.children) processEl(ch);
+
+      // フォント参照モード: テキストをフォントで描画
+      if (renderMode === "font") {
+        const dept = document.getElementById("deptInput").value;
+        const date = document.getElementById("currentDate").textContent;
+        const name = document.getElementById("nameInput").value;
+
+        // テキスト色を最初のpath要素のfillから取得
+        let textColor = {r:239, g:69, b:74};
+        const firstPath = svgEl.querySelector("path[fill]");
+        if (firstPath) textColor = parseColor(firstPath.getAttribute("fill")) || textColor;
+
+        const isSanmon = svgId === "InkanSanmon";
+
+        if (isSanmon) {
+          const R = 28 - 0.8;
+          function chordHW2(cy) { return Math.sqrt(Math.max(0, R*R - (cy-30)**2)) * 0.97; }
+          // 文字幅推定: CJK=1.0em, ASCII=0.55em
+          function estimateWidth(text, fs) {
+            let w = 0;
+            for (const ch of text) w += ch.charCodeAt(0) > 0x7F ? fs : fs * 0.55;
+            return w;
+          }
+          const zones = [
+            { text: dept, cy:12.5, yMin:3.5,  yMax:21.5, hR:0.5, wR:1.2 },
+            { text: date, cy:30,   yMin:22.5, yMax:37.5, hR:0.85, wR:1.5 },
+            { text: name, cy:47.5, yMin:38.5, yMax:56.5, hR:0.6, wR:1.2 },
+          ];
+          zones.forEach(z => {
+            if (!z.text) return;
+            const zH = z.yMax - z.yMin;
+            const zW = chordHW2(z.cy) * 2;
+            const fontSize = Math.min(zH * z.hR, zW / z.text.length * z.wR);
+            // テキスト幅を推定して左寄せ開始位置を計算
+            const estW = estimateWidth(z.text, fontSize);
+            const startX = 30 - estW / 2;
+            const fontH = createFont(nextH++, toP(fontSize), textColor);
+            sel(fontH);
+            emitText(z.text, toP(startX), toP((z.yMin + z.yMax) / 2 + fontSize * 0.35));
+            del(fontH);
+          });
+        } else {
+          // 縦書き印: 名前を縦書きで描画
+          if (name) {
+            // 1文字ずつ縦に配置
+            const n = name.length;
+            const fontSize = Math.min(50 / Math.max(n, 1), 20);
+            const startY = 30 - (n - 1) * fontSize * 0.55;
+            for (let i = 0; i < n; i++) {
+              const fontH = createFont(nextH++, toP(fontSize), textColor);
+              sel(fontH);
+              emitText(name[i], toP(30), toP(startY + i * fontSize * 1.1));
+              del(fontH);
+            }
+          }
+        }
+      }
 
       rec(T.EOF, B().u32(0).u32(16).u32(0).get());
       const lr=recs[recs.length-1];
@@ -1088,17 +1309,17 @@
       const S32=v=>{dv.setInt32(o,v,true);o+=4;};
       const H16=v=>{dv.setUint16(o,v&0xffff,true);o+=2;};
       H32(1);H32(108);
-      S32(0);S32(0);S32(W);S32(H);
-      S32(0);S32(0);S32(FRAME);S32(FRAME);
+      S32(0);S32(0);S32(LOGICAL);S32(LOGICAL);              // rclBounds (= logical = device units)
+      S32(0);S32(0);S32(FRAME);S32(FRAME);                  // rclFrame (1/100mm)
       H32(0x464D4520);H32(0x00010000);
       H32(grand);H32(nRec);
       H16(nextH);H16(0);
-      H32(0);H32(0);H32(0);    // nDesc=0, offDesc=0 (no description), nPalEntries=0
-      H32(W);H32(H);                                                        // szlDevice
-      const szlMM = s.unit==="mm" ? Math.round(s.mm) : Math.round(W*25.4/96);
-      H32(szlMM);H32(szlMM);                                                  // szlMillimeters
-      H32(0);H32(0);H32(0);                                                   // cbPixelFormat, offPixelFormat, bOpenGL
-      H32(szlMM*1000);H32(szlMM*1000);                                        // szlMicrometers
+      H32(0);H32(0);H32(0);    // nDesc=0, offDesc=0, nPalEntries=0
+      // 600dpi固定 (image1.emf互換): rclBounds/600*25.4 ≈ frameMM
+      H32(REF_DEV_X);H32(REF_DEV_Y);                        // szlDevice (4961x7016)
+      H32(REF_MM_X);H32(REF_MM_Y);                          // szlMillimeters (A4)
+      H32(0);H32(0);H32(0);                                 // cbPixelFormat, offPixelFormat, bOpenGL
+      H32(REF_MM_X * 1000);H32(REF_MM_Y * 1000);            // szlMicrometers
 
       const out=new Uint8Array(grand); out.set(hdr,0); let off=108;
       for(const r of recs){out.set(r,off);off+=r.byteLength;}
@@ -1251,6 +1472,53 @@
         } else if (tag === "path") {
           const d = el.getAttribute("d");
           if (d) emitDString(d);
+        } else if (tag === "text" && loadedFont) {
+          // フォントモード: <text>をopentype.jsでアウトライン化→PDFパスで描画
+          const txt = el.textContent || "";
+          const fontSize = parseFloat(el.getAttribute("font-size") || "10");
+          const ax = parseFloat(el.getAttribute("x") || "0");
+          const ay = parseFloat(el.getAttribute("y") || "0");
+          const anchor = el.getAttribute("text-anchor");
+          const isVert = el.getAttribute("writing-mode") === "tb";
+          if (txt) {
+            const path = buildPath(loadedFont, txt, ax, ay, fontSize, isVert, 0, 1.0);
+            if (anchor === "middle") {
+              const bb = path.getBoundingBox();
+              if (bb && isFinite(bb.x1)) {
+                const dx = ax - (bb.x1 + bb.x2) / 2;
+                const dy = isVert ? ay - (bb.y1 + bb.y2) / 2 : 0;
+                path.commands.forEach(cmd => {
+                  if (cmd.x !== undefined) cmd.x += dx;
+                  if (cmd.x1 !== undefined) cmd.x1 += dx;
+                  if (cmd.x2 !== undefined) cmd.x2 += dx;
+                  if (isVert && cmd.y !== undefined) cmd.y += dy;
+                  if (isVert && cmd.y1 !== undefined) cmd.y1 += dy;
+                  if (isVert && cmd.y2 !== undefined) cmd.y2 += dy;
+                });
+              }
+            }
+            // パスコマンドをPDFオペレータに変換
+            let pcx = 0, pcy = 0, inFig = false;
+            path.commands.forEach(cmd => {
+              if (cmd.type==="M" && isFinite(cmd.x) && isFinite(cmd.y)) {
+                if (inFig) lines.push("h");
+                lines.push(`${tx(cmd.x)} ${ty(cmd.y)} m`);
+                pcx=cmd.x; pcy=cmd.y; inFig=true;
+              } else if (cmd.type==="L" && isFinite(cmd.x) && isFinite(cmd.y)) {
+                lines.push(`${tx(cmd.x)} ${ty(cmd.y)} l`);
+                pcx=cmd.x; pcy=cmd.y;
+              } else if (cmd.type==="C" && [cmd.x1,cmd.y1,cmd.x2,cmd.y2,cmd.x,cmd.y].every(isFinite)) {
+                lines.push(`${tx(cmd.x1)} ${ty(cmd.y1)} ${tx(cmd.x2)} ${ty(cmd.y2)} ${tx(cmd.x)} ${ty(cmd.y)} c`);
+                pcx=cmd.x; pcy=cmd.y;
+              } else if (cmd.type==="Q" && [cmd.x1,cmd.y1,cmd.x,cmd.y].every(isFinite)) {
+                const c1x=pcx+2/3*(cmd.x1-pcx), c1y=pcy+2/3*(cmd.y1-pcy);
+                const c2x=cmd.x+2/3*(cmd.x1-cmd.x), c2y=cmd.y+2/3*(cmd.y1-cmd.y);
+                lines.push(`${tx(c1x)} ${ty(c1y)} ${tx(c2x)} ${ty(c2y)} ${tx(cmd.x)} ${ty(cmd.y)} c`);
+                pcx=cmd.x; pcy=cmd.y;
+              } else if (cmd.type==="Z") { lines.push("h"); inFig=false; }
+            });
+            if (inFig) lines.push("h");
+          }
         } else { lines.push("Q"); return; }
 
         // 描画オペレータ
