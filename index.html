@@ -296,16 +296,30 @@
     }
 
     // ── テキストをSVGに配置（枠ギリギリ・文字間詰め） ──────────
-    function placeFitText(font, text, zone, id, svgElem, color, strokeWidth, isVertical) {
+    // vAlign: "top" | "center" | "bottom" - ゾーン内の縦方向配置
+    function placeFitText(font, text, zone, id, svgElem, color, strokeWidth, isVertical, vAlign) {
       const old = document.getElementById(id + "Path");
       if (old) old.remove();
       if (!text) return;
+      vAlign = vAlign || "center";
+      const VALIGN_MARGIN = 0.8; // ラインとの隙間
 
       const zW  = zone.xMax - zone.xMin;
       const zH  = zone.yMax - zone.yMin;
       const zCx = (zone.xMin + zone.xMax) / 2;
       const zCy = (zone.yMin + zone.yMax) / 2;
       const CIRCLE_CX = 30, CIRCLE_CY = 30, CIRCLE_R = 28 - 0.8;
+
+      // y方向のアライメント計算
+      function calcYAdj(bb0) {
+        if (vAlign === "bottom") {
+          return (zone.yMax - VALIGN_MARGIN) - bb0.y2;
+        } else if (vAlign === "top") {
+          return (zone.yMin + VALIGN_MARGIN) - bb0.y1;
+        } else {
+          return zCy - (bb0.y1 + bb0.y2) / 2;
+        }
+      }
 
       // パスを生成してbboxを返す。ゾーン・円のはみ出しがあればnull
       // scaleX: 縦書き時のX方向スケール（横長化）
@@ -333,17 +347,19 @@
           const p0   = buildPath(font, text, xStart, baseline0, fontSize, false, charSpacing, 1.0);
           const bb0  = safeBbox(p0);
           if (!bb0) return null;
-          const yAdj = zCy - (bb0.y1 + bb0.y2) / 2;
-          path = buildPath(font, text, xStart, baseline0 + yAdj, fontSize, false, charSpacing, 1.0);
+          const yAdj = calcYAdj(bb0);
+          const finalBaseline = baseline0 + yAdj;
+          path = buildPath(font, text, xStart, finalBaseline, fontSize, false, charSpacing, 1.0);
           bbox = safeBbox(path);
+          if (bbox) path._layoutInfo = { xStart, baseline: finalBaseline };
         } else {
-          // 縦書き: scaleX で横幅を拡大
+          // 縦書き: scaleX で横幅を拡大（縦書きは常にcenter）
           const p0  = buildPath(font, text, zCx, zCy, fontSize, true, charSpacing, scaleX);
           const bb0 = safeBbox(p0);
           if (!bb0) return null;
           const xAdj = zCx - (bb0.x1 + bb0.x2) / 2;
-          const yAdj = zCy - (bb0.y1 + bb0.y2) / 2;
-          path = buildPath(font, text, zCx + xAdj, zCy + yAdj, fontSize, true, charSpacing, scaleX);
+          const yAdjV = zCy - (bb0.y1 + bb0.y2) / 2;
+          path = buildPath(font, text, zCx + xAdj, zCy + yAdjV, fontSize, true, charSpacing, scaleX);
           bbox = safeBbox(path);
         }
 
@@ -409,10 +425,9 @@
       const result = tryLayout(finalFs, finalSp);
       if (!result) return;
 
-      // toPathData()を使わずNaN除去済みcommandsから直接d文字列を生成
-      // （toPathData()はQコマンドにNaNが含まれるとSVGが壊れるため）
+      // パスデータ変換（精度1桁に削減 → Mac Excel SVG互換）
       function commandsToD(cmds) {
-        const f = v => v.toFixed(3);
+        const f = v => v.toFixed(1);
         return cmds.map(c => {
           if (c.type==='M') return `M${f(c.x)} ${f(c.y)}`;
           if (c.type==='L') return `L${f(c.x)} ${f(c.y)}`;
@@ -422,13 +437,49 @@
           return '';
         }).join('');
       }
-      const svgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      svgPath.setAttribute("id", id + "Path");
-      svgPath.setAttribute("d", commandsToD(result.path.commands));
-      svgPath.setAttribute("fill", color);
-      svgPath.setAttribute("stroke", color);
-      svgPath.setAttribute("stroke-width", strokeWidth);
-      svgElem.appendChild(svgPath);
+
+      // 文字ごとに個別の<path>要素を生成（Mac ExcelのSVGパス長制限回避）
+      const chars = text.split('');
+      const fontScale = finalFs / font.unitsPerEm;
+      // tryLayoutの結果から開始位置を逆算
+      const resBB = result.path.getBoundingBox();
+
+      if (!isVertical) {
+        // 横書き: tryLayoutで確定した位置パラメータを直接使用
+        const layoutInfo = result.path._layoutInfo;
+        let curX = layoutInfo ? layoutInfo.xStart : zCx;
+        const baseline = layoutInfo ? layoutInfo.baseline : zCy + finalFs * 0.3;
+        chars.forEach((ch, i) => {
+          const glyph = font.charToGlyph(ch);
+          if (i > 0) {
+            const prevGlyph = font.charToGlyph(chars[i-1]);
+            const kern = font.getKerningValue(prevGlyph, glyph) * fontScale;
+            if (isFinite(kern)) curX += kern;
+          }
+          const p = buildPath(font, ch, curX, baseline, finalFs, false, 0, 1.0);
+          const pbb = safeBbox(p);
+          if (pbb && p.commands.length > 0) {
+            const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            el.setAttribute("id", id + "Path" + i);
+            el.setAttribute("d", commandsToD(p.commands));
+            el.setAttribute("fill", color);
+            el.setAttribute("stroke", color);
+            el.setAttribute("stroke-width", strokeWidth);
+            svgElem.appendChild(el);
+          }
+          const adv = glyph.advanceWidth * fontScale;
+          curX += (isFinite(adv) ? adv : finalFs) + finalSp;
+        });
+      } else {
+        // 縦書き: 結合パスをそのまま出力（文字数が少なく問題になりにくい）
+        const svgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        svgPath.setAttribute("id", id + "Path");
+        svgPath.setAttribute("d", commandsToD(result.path.commands));
+        svgPath.setAttribute("fill", color);
+        svgPath.setAttribute("stroke", color);
+        svgPath.setAttribute("stroke-width", strokeWidth);
+        svgElem.appendChild(svgPath);
+      }
 
       const textElem = document.getElementById(id + "Text");
       if (textElem) textElem.remove();
@@ -651,9 +702,9 @@
       const result = tryGridLayout(bestFs, bestSX, GAP);
       if (!result) return;
 
-      // ── SVG出力 ──
+      // ── SVG出力（文字別<path>要素、精度1桁） ──
       function commandsToD(cmds) {
-        const f = v => v.toFixed(3);
+        const f = v => v.toFixed(1);
         return cmds.map(c => {
           if (c.type==='M') return `M${f(c.x)} ${f(c.y)}`;
           if (c.type==='L') return `L${f(c.x)} ${f(c.y)}`;
@@ -663,16 +714,17 @@
           return '';
         }).join('');
       }
-      let allD = '';
-      result.paths.forEach(p => { allD += commandsToD(p.commands); });
-
-      const svgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      svgPath.setAttribute("id", "tateNamePath");
-      svgPath.setAttribute("d", allD);
-      svgPath.setAttribute("fill", color);
-      svgPath.setAttribute("stroke", color);
-      svgPath.setAttribute("stroke-width", strokeWidth);
-      svgElem.appendChild(svgPath);
+      // 文字ごとに個別の<path>を生成（Mac Excel互換）
+      result.paths.forEach((p, i) => {
+        if (p.commands.length === 0) return;
+        const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        el.setAttribute("id", "tateNamePath" + i);
+        el.setAttribute("d", commandsToD(p.commands));
+        el.setAttribute("fill", color);
+        el.setAttribute("stroke", color);
+        el.setAttribute("stroke-width", strokeWidth);
+        svgElem.appendChild(el);
+      });
     }
 
     // ── 印鑑更新 ─────────────────────────────────────────────────
@@ -695,10 +747,9 @@
       const lines = svgS.querySelectorAll("line");
       if (lines[0]) { lines[0].setAttribute("stroke", color); lines[0].setAttribute("stroke-width", swLine); }
       if (lines[1]) { lines[1].setAttribute("stroke", color); lines[1].setAttribute("stroke-width", swLine); }
-      // 旧テキスト要素を削除（path/text両方）
+      // 旧テキスト要素を削除（path/text、文字別パスも含む）
       ["dept","date","name"].forEach(id => {
-        const p = document.getElementById(id+"Path"); if(p) p.remove();
-        const t = document.getElementById(id+"Text"); if(t) t.remove();
+        svgS.querySelectorAll(`[id^="${id}Path"], [id="${id}Text"]`).forEach(el => el.remove());
       });
 
       const R = 28 - 0.8;
@@ -708,26 +759,35 @@
 
       if (mode === "outline") {
         try {
-          placeFitText(loadedFont, dept, {xMin:30-chordHW(12.5), xMax:30+chordHW(12.5), yMin:3.5,  yMax:21.5}, "dept",  svgS, color, swText, false);
-          placeFitText(loadedFont, date, {xMin:30-chordHW(30),   xMax:30+chordHW(30),   yMin:22.5, yMax:37.5}, "date",  svgS, color, swText, false);
-          placeFitText(loadedFont, name, {xMin:30-chordHW(47.5), xMax:30+chordHW(47.5), yMin:38.5, yMax:56.5}, "name",  svgS, color, swText, false);
+          placeFitText(loadedFont, dept, {xMin:30-chordHW(12.5), xMax:30+chordHW(12.5), yMin:3.5,  yMax:21.5}, "dept",  svgS, color, swText, false, "bottom");
+          placeFitText(loadedFont, date, {xMin:30-chordHW(30),   xMax:30+chordHW(30),   yMin:22.5, yMax:37.5}, "date",  svgS, color, swText, false, "center");
+          placeFitText(loadedFont, name, {xMin:30-chordHW(47.5), xMax:30+chordHW(47.5), yMin:38.5, yMax:56.5}, "name",  svgS, color, swText, false, "top");
         } catch(e) { console.error("三文判エラー:", e); }
       } else {
         // フォント参照モード: SVG <text> で描画
         const zones = [
-          { id:"dept", text:dept, cy:12.5, yMin:3.5,  yMax:21.5, hR:0.5, wR:1.2 },
-          { id:"date", text:date, cy:30,   yMin:22.5, yMax:37.5, hR:0.85, wR:1.8 },
-          { id:"name", text:name, cy:47.5, yMin:38.5, yMax:56.5, hR:0.6, wR:1.4 },
+          { id:"dept", text:dept, cy:12.5, yMin:3.5,  yMax:21.5, hR:0.5, wR:1.2, vAlign:"bottom" },
+          { id:"date", text:date, cy:30,   yMin:22.5, yMax:37.5, hR:0.85, wR:1.8, vAlign:"center" },
+          { id:"name", text:name, cy:47.5, yMin:38.5, yMax:56.5, hR:0.6, wR:1.4, vAlign:"top" },
         ];
         zones.forEach(z => {
           if (!z.text) return;
           const zH = z.yMax - z.yMin;
           const zW = chordHW(z.cy) * 2;
           const fs = Math.min(zH * z.hR, zW / z.text.length * z.wR);
+          // vAlignに基づくy位置計算
+          let yPos;
+          if (z.vAlign === "bottom") {
+            yPos = z.yMax - 1.0;             // ライン付近（下寄せ）
+          } else if (z.vAlign === "top") {
+            yPos = z.yMin + fs * 0.8 + 0.5;  // ライン付近（上寄せ）
+          } else {
+            yPos = z.cy + fs * 0.35;          // 中央
+          }
           const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
           t.setAttribute("id", z.id + "Text");
           t.setAttribute("x", "30");
-          t.setAttribute("y", String(z.cy + fs * 0.35));
+          t.setAttribute("y", String(yPos));
           t.setAttribute("text-anchor", "middle");
           t.setAttribute("font-family", "Yuji Syuku, serif");
           t.setAttribute("font-size", String(fs));
@@ -1191,7 +1251,7 @@
       function processEl(el){
         const tag=el.tagName.toLowerCase();
         const elId = el.getAttribute("id") || "";
-        const isTextPath = elId.endsWith("Path"); // deptPath, datePath, namePath, tateNamePath
+        const isTextPath = /Path\d*$/.test(elId); // deptPath, deptPath0, deptPath1, etc.
 
         // フォントモードではテキストパスをスキップ（後で別途描画）
         if (renderMode === "font" && tag === "path" && isTextPath) return;
